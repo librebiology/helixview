@@ -1,0 +1,10 @@
+[package]
+name = "helixview-external"
+version = "0.1.0"
+edition = "2021"
+description = "External tool integration (BLAST, ClustalW/Omega, etc.)"
+
+[dependencies]
+helixview-core    = { workspace = true }
+helixview-formats = { workspace = true }
+thiserror        = { workspace = true }

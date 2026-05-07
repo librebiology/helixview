@@ -1,0 +1,17 @@
+[package]
+name    = "helixview-cli"
+version = "0.1.0"
+edition = "2021"
+description = "Command-line interface for headless HelixView analysis"
+
+[[bin]]
+name = "helixview-cli"
+path = "src/main.rs"
+
+[dependencies]
+helixview-core     = { workspace = true }
+helixview-formats  = { workspace = true }
+helixview-analysis = { workspace = true }
+clap    = { workspace = true }
+anyhow  = { workspace = true }
+rayon   = { workspace = true }

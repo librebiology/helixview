@@ -1,0 +1,14 @@
+target/
+*.swp
+.DS_Store
+
+# Local dev settings
+.claude/
+
+# Internal development notes (zipped locally as dev-notes.zip)
+notas
+MANUAL_TESTS.md
+SCREENSHOTS_GUIDE.md
+REVIEW_HUMAN.md
+DOWNLOAD_LIST.md
+dev-notes.zip

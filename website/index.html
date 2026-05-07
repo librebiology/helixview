@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HelixView — Sequence Alignment Editor</title>
+  <meta name="description" content="Free, cross-platform biological sequence alignment editor for Windows, macOS and Linux. BioEdit replacement.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="#top">
+      <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
+        <path d="M5 3 Q11 8 17 3" stroke="#2a7a4b" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <path d="M5 8 Q11 13 17 8" stroke="#2a7a4b" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <path d="M5 13 Q11 18 17 13" stroke="#2a7a4b" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <line x1="5" y1="3" x2="5" y2="19" stroke="#1a3a52" stroke-width="1.5"/>
+        <line x1="17" y1="3" x2="17" y2="19" stroke="#1a3a52" stroke-width="1.5"/>
+      </svg>
+      HelixView
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#shortcuts">Shortcuts</a></li>
+      <li><a href="#download">Download</a></li>
+      <li><a href="docs.html">Docs</a></li>
+      <li><a href="https://github.com/librebiology/helixview">GitHub</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Header -->
+<div id="top" class="page-header">
+  <h1>HelixView</h1>
+  <p>Free, open-source sequence alignment editor for Windows, macOS and Linux.<br>
+     A modern replacement for BioEdit.</p>
+  <div class="dl-buttons">
+    <a href="#download" class="btn btn-primary">Download</a>
+    <a href="https://github.com/librebiology/helixview" class="btn btn-outline">View source</a>
+  </div>
+</div>
+
+<!-- Screenshot -->
+<div class="screenshot-wrap">
+  <img src="screenshots/alignment.png"
+       alt="HelixView showing a tRNA alignment with covariation arcs and entropy strip"
+       width="900">
+</div>
+
+<!-- Features -->
+<section id="features">
+  <div class="content">
+    <h2>Features</h2>
+    <div class="feature-cols">
+      <ul>
+        <li><strong>Alignment editor</strong> — open, edit and export FASTA, Clustal, GenBank, PHYLIP, Stockholm; insert/delete gaps; full undo/redo</li>
+        <li><strong>Colour schemes</strong> — nucleotide, amino acid, Clustal X, and conservation-based colouring</li>
+        <li><strong>Entropy strip</strong> — per-column Shannon entropy displayed live below the alignment</li>
+        <li><strong>RNA covariation (MI)</strong> — mutual information for all column pairs; Watson–Crick scoring highlights stem–loop candidates; adjustable thresholds; pairing-arc overlay</li>
+        <li><strong>Circular plasmid map</strong> — GenBank features drawn on a circular canvas; click to edit colour, name, or position; restriction sites overlaid</li>
+        <li><strong>Restriction map strip</strong> — enzyme cut sites shown as a colour-coded band above the entropy ruler</li>
+      </ul>
+      <ul>
+        <li><strong>Phylogenetic tree</strong> — neighbour-joining tree from the open alignment; click leaves to select sequences</li>
+        <li><strong>BLAST integration</strong> — submit to NCBI or run against a local database; hits import directly into the alignment</li>
+        <li><strong>Sequence fetch</strong> — retrieve from NCBI or UniProt by accession; comma-separate to import multiple at once</li>
+        <li><strong>Six-frame translation</strong> — all six reading frames with ORFs and stop codons marked</li>
+        <li><strong>Hydrophobicity profiles</strong> — Kyte–Doolittle windowed plots for membrane-region identification</li>
+        <li><strong>ABI trace viewer</strong> — Sanger chromatogram display with zoom and base-call quantification</li>
+        <li><strong>CLI companion</strong> — <code>helixview-cli</code>: <code>stats</code>, <code>entropy</code>, <code>consensus</code>, <code>mi</code>, <code>identity</code>, <code>convert</code></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- More screenshots -->
+<section id="screenshots" class="alt-bg">
+  <div class="content">
+    <h2>More views</h2>
+    <div class="thumb-row">
+      <figure>
+        <a href="screenshots/mi.png"><img src="screenshots/mi.png" alt="Mutual information covariation table"></a>
+        <figcaption>MI covariation table</figcaption>
+      </figure>
+      <figure>
+        <a href="screenshots/plasmid.png"><img src="screenshots/plasmid.png" alt="Circular plasmid map"></a>
+        <figcaption>Circular plasmid map</figcaption>
+      </figure>
+      <figure>
+        <a href="screenshots/analysis.png"><img src="screenshots/analysis.png" alt="Neighbour-joining tree"></a>
+        <figcaption>Neighbour-joining tree</figcaption>
+      </figure>
+      <figure>
+        <a href="screenshots/hydrophobicity.png"><img src="screenshots/hydrophobicity.png" alt="Hydrophobicity profile"></a>
+        <figcaption>Hydrophobicity profile</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- Keyboard shortcuts -->
+<section id="shortcuts">
+  <div class="content">
+    <h2>Keyboard shortcuts</h2>
+    <div class="shortcut-tables">
+
+      <table>
+        <caption>File</caption>
+        <tr><td><kbd>Ctrl+O</kbd></td><td>Open file</td></tr>
+        <tr><td><kbd>Ctrl+S</kbd></td><td>Save file</td></tr>
+        <tr><td><kbd>Ctrl+N</kbd></td><td>New alignment</td></tr>
+        <tr><td><kbd>Ctrl+T</kbd></td><td>New tab</td></tr>
+        <tr><td><kbd>Ctrl+W</kbd></td><td>Close tab</td></tr>
+      </table>
+
+      <table>
+        <caption>Edit</caption>
+        <tr><td><kbd>Ctrl+Z</kbd></td><td>Undo</td></tr>
+        <tr><td><kbd>Ctrl+Y</kbd></td><td>Redo</td></tr>
+        <tr><td><kbd>Space</kbd></td><td>Insert gap at cursor</td></tr>
+        <tr><td><kbd>Shift+Space</kbd></td><td>Insert gap in all other sequences</td></tr>
+        <tr><td><kbd>Backspace</kbd></td><td>Delete gap before cursor</td></tr>
+        <tr><td><kbd>Shift+Backspace</kbd></td><td>Delete gap in all other sequences</td></tr>
+        <tr><td><kbd>Ctrl+A</kbd></td><td>Select all sequences</td></tr>
+        <tr><td><kbd>Ctrl+D</kbd></td><td>Deselect all</td></tr>
+      </table>
+
+      <table>
+        <caption>Navigate &amp; Search</caption>
+        <tr><td><kbd>Arrow keys</kbd></td><td>Scroll / move edit cursor</td></tr>
+        <tr><td><kbd>Page Up/Down</kbd></td><td>Scroll 20 rows</td></tr>
+        <tr><td><kbd>Home / End</kbd></td><td>Jump to first / last column</td></tr>
+        <tr><td><kbd>Ctrl+F</kbd></td><td>Toggle search bar</td></tr>
+        <tr><td><kbd>F3 / Enter</kbd></td><td>Next search match</td></tr>
+        <tr><td><kbd>Shift+F3</kbd></td><td>Previous match</td></tr>
+        <tr><td><kbd>Escape</kbd></td><td>Close search / cancel selection</td></tr>
+        <tr><td><kbd>Ctrl+P</kbd></td><td>Command palette</td></tr>
+      </table>
+
+      <table>
+        <caption>View</caption>
+        <tr><td><kbd>Ctrl++</kbd></td><td>Zoom in</td></tr>
+        <tr><td><kbd>Ctrl+−</kbd></td><td>Zoom out</td></tr>
+        <tr><td><kbd>Ctrl+0</kbd></td><td>Reset zoom</td></tr>
+        <tr><td><kbd>Click ruler</kbd></td><td>Select column range</td></tr>
+        <tr><td><kbd>Shift+Click</kbd></td><td>Range-select sequences</td></tr>
+        <tr><td><kbd>Ctrl+Click</kbd></td><td>Toggle sequence in selection</td></tr>
+      </table>
+
+    </div>
+  </div>
+</section>
+
+<!-- Download -->
+<section id="download" class="alt-bg">
+  <div class="content">
+    <h2>Download</h2>
+    <p>HelixView is free and open-source under the <strong>GPL-3.0</strong> licence. No registration required.</p>
+
+    <div class="dl-grid">
+      <div class="dl-card">
+        <h3>Windows</h3>
+        <p>Windows 10 or later, 64-bit</p>
+        <a href="https://github.com/librebiology/helixview/releases/latest/download/helixview-windows-x64.msi" class="btn btn-primary">Download .msi</a>
+        <div class="dl-also">Also available: <a href="https://github.com/librebiology/helixview/releases/latest/download/helixview-windows-x64.exe">portable .exe</a></div>
+      </div>
+      <div class="dl-card">
+        <h3>macOS</h3>
+        <p>macOS 12 Monterey or later<br>Universal binary (Apple Silicon + Intel)</p>
+        <a href="https://github.com/librebiology/helixview/releases/latest/download/HelixView-macos.dmg" class="btn btn-primary">Download .dmg</a>
+        <div class="dl-also">Right-click → Open on first launch</div>
+      </div>
+      <div class="dl-card">
+        <h3>Linux</h3>
+        <p>x86-64, any modern distribution</p>
+        <a href="https://github.com/librebiology/helixview/releases/latest/download/HelixView-x86_64.AppImage" class="btn btn-primary">Download AppImage</a>
+        <div class="dl-also"><code>chmod +x HelixView-x86_64.AppImage && ./HelixView-x86_64.AppImage</code></div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:2em;">Build from source</h3>
+    <p>Requires <a href="https://rustup.rs/">Rust</a> 1.77 or later.</p>
+    <pre><code>git clone https://github.com/librebiology/helixview
+cd helixview
+cargo build --release
+./target/release/helixview          # GUI
+./target/release/helixview-cli --help</code></pre>
+
+    <p style="margin-top:1em;"><a href="https://github.com/librebiology/helixview/releases">All releases and changelogs →</a></p>
+  </div>
+</section>
+
+<footer>
+  <div class="content footer-inner">
+    <span>HelixView — GPL-3.0 — <a href="https://github.com/librebiology/helixview">GitHub</a></span>
+    <span><a href="docs.html">Documentation</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

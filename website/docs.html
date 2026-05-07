@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentation — HelixView</title>
+  <meta name="description" content="Keyboard shortcuts, workflows, and usage guide for HelixView.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .docs-layout { display: grid; grid-template-columns: 200px 1fr; gap: 48px; align-items: start; }
+    .docs-nav { position: sticky; top: 80px; }
+    .docs-nav ul { list-style: none; }
+    .docs-nav li { margin-bottom: 4px; }
+    .docs-nav a { font-size: 0.88rem; color: var(--muted); display: block; padding: 4px 0; }
+    .docs-nav a:hover { color: var(--green); text-decoration: none; }
+    .docs-nav .group { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--navy); margin: 14px 0 4px; }
+    .docs-content h2 { margin-top: 52px; padding-top: 24px; border-top: 1px solid var(--border); }
+    .docs-content h2:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+    @media (max-width: 700px) { .docs-layout { grid-template-columns: 1fr; } .docs-nav { display: none; } }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="index.html">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <path d="M5 3 Q11 8 17 3" stroke="#2a7a4b" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <path d="M5 8 Q11 13 17 8" stroke="#2a7a4b" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <path d="M5 13 Q11 18 17 13" stroke="#2a7a4b" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <line x1="5" y1="3" x2="5" y2="19" stroke="#1a3a52" stroke-width="1.5"/>
+        <line x1="17" y1="3" x2="17" y2="19" stroke="#1a3a52" stroke-width="1.5"/>
+      </svg>
+      HelixView
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="docs.html">Documentation</a></li>
+      <li><a href="download.html">Download</a></li>
+      <li><a href="https://github.com/librebiology/helixview">GitHub</a></li>
+    </ul>
+  </div>
+</nav>
+
+<section>
+  <div class="container">
+    <div class="docs-layout">
+
+      <!-- Sidebar -->
+      <aside class="docs-nav">
+        <div class="group">Getting started</div>
+        <ul>
+          <li><a href="#opening">Opening files</a></li>
+          <li><a href="#views">Views &amp; tabs</a></li>
+          <li><a href="#editing">Editing sequences</a></li>
+          <li><a href="#export">Exporting</a></li>
+        </ul>
+        <div class="group">Workflows</div>
+        <ul>
+          <li><a href="#wf-rna">RNA stem analysis</a></li>
+          <li><a href="#wf-plasmid">Plasmid annotation</a></li>
+          <li><a href="#wf-blast">Local BLAST search</a></li>
+          <li><a href="#wf-cli">Command line</a></li>
+        </ul>
+        <div class="group">Reference</div>
+        <ul>
+          <li><a href="#shortcuts">Keyboard shortcuts</a></li>
+          <li><a href="#formats">File formats</a></li>
+        </ul>
+      </aside>
+
+      <!-- Content -->
+      <div class="docs-content">
+
+        <div class="section-label">Documentation</div>
+        <h1 style="font-size:1.8rem; margin-bottom:8px;">HelixView User Guide</h1>
+        <p class="muted">A practical reference for biologists. No programming required.</p>
+
+        <!-- ── Opening files ── -->
+        <h2 id="opening">Opening files</h2>
+        <p>HelixView opens on the last session automatically. To open a new file:</p>
+        <ul style="margin: 12px 0 12px 20px; line-height:2;">
+          <li>Click <strong>Open</strong> in the toolbar, or press <kbd>Ctrl+O</kbd></li>
+          <li>Drag and drop a file from your file manager onto the window</li>
+          <li>Use <strong>File → Fetch from NCBI…</strong> to download a sequence by accession number</li>
+        </ul>
+        <p><strong>Supported formats:</strong> FASTA, GenBank (.gb/.gbk), Clustal (.aln), PHYLIP, Stockholm, AB1 chromatogram traces.</p>
+        <div class="callout">
+          To open a project (all open files + window layout), use <strong>Open Project</strong> and choose a <code>.hvproj</code> file.
+        </div>
+
+        <!-- ── Views ── -->
+        <h2 id="views">Views &amp; tabs</h2>
+        <p>The main window shows one view at a time. Switch using the tabs at the top:</p>
+        <table class="shortcut-table" style="margin-top:16px;">
+          <thead><tr><th>Tab</th><th>What it shows</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Alignment</strong></td><td>Multi-sequence alignment grid with colour schemes, entropy strip, restriction map, covariation arcs</td></tr>
+            <tr><td><strong>Plasmid</strong></td><td>Circular plasmid map for the selected sequence. Feature list panel on the right.</td></tr>
+            <tr><td><strong>Tree</strong></td><td>Neighbour-joining phylogenetic tree built from the open alignment</td></tr>
+            <tr><td><strong>Dot Plot</strong></td><td>Dot plot comparing two sequences</td></tr>
+            <tr><td><strong>Six-Frame</strong></td><td>Six-frame translation of the selected sequence</td></tr>
+            <tr><td><strong>Hydrophobicity</strong></td><td>Kyte–Doolittle windowed profile for each sequence</td></tr>
+            <tr><td><strong>Identity</strong></td><td>NxN pairwise identity matrix (colour-coded)</td></tr>
+            <tr><td><strong>Composition</strong></td><td>Per-sequence nucleotide or amino acid composition bar chart</td></tr>
+            <tr><td><strong>Trace</strong></td><td>AB1 chromatogram trace viewer</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:12px;">Within the Alignment view, the <strong>toolbar tabs</strong> (View / Analysis / Aligner / Export) expand additional controls.</p>
+
+        <!-- ── Editing ── -->
+        <h2 id="editing">Editing sequences</h2>
+        <ul style="margin: 12px 0 12px 20px; line-height:2.2;">
+          <li><strong>Insert gap:</strong> click on a cell and press <kbd>Space</kbd> or <kbd>-</kbd></li>
+          <li><strong>Delete gap:</strong> select a gap cell and press <kbd>Backspace</kbd> or <kbd>Delete</kbd></li>
+          <li><strong>Rename a sequence:</strong> double-click the sequence name in the left column</li>
+          <li><strong>Find a motif:</strong> press <kbd>Ctrl+F</kbd> and type — matches highlighted in the grid</li>
+          <li><strong>Undo / Redo:</strong> <kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Y</kbd></li>
+        </ul>
+
+        <!-- ── Exporting ── -->
+        <h2 id="export">Exporting</h2>
+        <p>Use the <strong>Export</strong> toolbar tab or <kbd>Ctrl+E</kbd>:</p>
+        <ul style="margin: 12px 0 12px 20px; line-height:2;">
+          <li><strong>FASTA</strong> — plain sequences, current alignment</li>
+          <li><strong>Text alignment</strong> — blocked format with ruler and position numbers; adjustable line width</li>
+          <li><strong>SVG</strong> — shaded alignment, vector, scales to any size</li>
+          <li><strong>PDF</strong> — shaded alignment, ready for publication or lab reports</li>
+        </ul>
+
+        <!-- ─────────── WORKFLOWS ─────────── -->
+
+        <!-- RNA covariation -->
+        <h2 id="wf-rna">Workflow: RNA stem–loop analysis</h2>
+        <div class="callout">
+          Best results with ≥20 aligned sequences of the same RNA gene (e.g. 16S rRNA, 5S rRNA, tRNA).
+        </div>
+
+        <div class="workflow">
+          <h3>Step-by-step</h3>
+          <ol class="steps">
+            <li>
+              <div>Open a multi-sequence RNA FASTA alignment (<kbd>Ctrl+O</kbd>).</div>
+            </li>
+            <li>
+              <div>In the toolbar, open the <strong>Analysis</strong> tab and click <strong>Mutual Information</strong>.</div>
+            </li>
+            <li>
+              <div>Adjust <em>Top pairs</em> and <em>Min observations</em> if needed, then click <strong>Run MI</strong>.</div>
+              <p class="sub">MI uses all CPU cores — on a typical laptop this takes a few seconds for a 100-sequence, 1500-column alignment.</p>
+            </li>
+            <li>
+              <div>Switch to the <strong>Covariation</strong> tab. Green-highlighted rows are candidate stem pairs (≥2 Watson–Crick pair types, ≥50% WC fraction by default).</div>
+            </li>
+            <li>
+              <div>Use the <strong>Min WC types</strong> and <strong>Min WC %</strong> sliders to tighten or loosen the threshold. The table updates instantly.</div>
+            </li>
+            <li>
+              <div>Go back to the Alignment view. Toggle <strong>Cov Arcs</strong> in the View toolbar tab to see arcs connecting covarying column pairs above the entropy strip.</div>
+            </li>
+            <li>
+              <div>If you edit the alignment after running MI, an amber warning strip will appear reminding you to re-run.</div>
+            </li>
+          </ol>
+        </div>
+
+        <div class="screenshot-grid" style="margin-top:24px;">
+          <div>
+            <div class="screenshot-box"><span>[ MI covariation table ]</span></div>
+            <p class="screenshot-caption">Covariation tab with threshold sliders</p>
+          </div>
+          <div>
+            <div class="screenshot-box"><span>[ Pairing arcs strip ]</span></div>
+            <p class="screenshot-caption">Pairing-arcs overlay in the alignment view</p>
+          </div>
+        </div>
+
+        <!-- Plasmid -->
+        <h2 id="wf-plasmid">Workflow: Plasmid annotation</h2>
+
+        <div class="workflow">
+          <ol class="steps">
+            <li>
+              <div>Open a GenBank file (<code>.gb</code> or <code>.gbk</code>). pUC19 from NCBI (accession L09137) is a good test case.</div>
+            </li>
+            <li>
+              <div>Click the <strong>Plasmid</strong> tab. The circular map renders with all annotated features colour-coded by type.</div>
+            </li>
+            <li>
+              <div>Click any arc on the map, or click a row in the feature list on the right, to select a feature.</div>
+            </li>
+            <li>
+              <div>Edit the feature name, start/end positions, or colour using the panel that appears below the feature list. Enter a hex colour code directly in the <strong>#RRGGBB</strong> field, or pick from the 16-swatch palette.</div>
+            </li>
+            <li>
+              <div>Click <strong>Apply</strong> to commit your changes. The map updates immediately.</div>
+            </li>
+            <li>
+              <div>Use <strong>+ New</strong> to add a blank feature; click <strong>✕</strong> next to a feature to delete it.</div>
+            </li>
+            <li>
+              <div>Save the file as GenBank to preserve annotations (<kbd>Ctrl+S</kbd>).</div>
+            </li>
+          </ol>
+        </div>
+
+        <!-- Local BLAST -->
+        <h2 id="wf-blast">Workflow: Local BLAST search</h2>
+        <div class="callout">
+          Requires BLAST+ to be installed and <code>makeblastdb</code> / <code>blastn</code> / <code>blastp</code> on your system PATH.
+          Download from <a href="https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/">NCBI BLAST+</a>.
+        </div>
+
+        <div class="workflow">
+          <ol class="steps">
+            <li><div>Open the Analysis panel → <strong>BLAST</strong> section.</div></li>
+            <li><div>Click <strong>Create Local DB…</strong> and select a FASTA file to use as the database. HelixView detects protein vs nucleotide automatically.</div></li>
+            <li><div>Once the DB is built, select a query sequence in the alignment view.</div></li>
+            <li><div>Click <strong>Run Local BLAST</strong>. Hits appear in the results table below.</div></li>
+            <li><div>Double-click any hit to jump to that region in the alignment.</div></li>
+          </ol>
+        </div>
+
+        <!-- CLI -->
+        <h2 id="wf-cli">Workflow: Command-line tools</h2>
+        <p>The <code>helixview-cli</code> binary is installed alongside the main application. Open a terminal and run:</p>
+        <pre style="background:var(--bg-alt); border:1px solid var(--border); border-radius:var(--radius); padding:16px; font-size:0.85rem; overflow-x:auto; margin-top:16px;"><code># Print alignment statistics
+helixview-cli stats sequences.fasta
+
+# Per-column Shannon entropy (tab-separated)
+helixview-cli entropy sequences.fasta --min-entropy 1.0
+
+# Consensus sequence (IUPAC codes)
+helixview-cli consensus sequences.fasta --method iupac
+
+# Mutual information + WC covariation
+helixview-cli mi sequences.fasta --top 20 --min-cov 0.5
+
+# NxN pairwise identity matrix (percent)
+helixview-cli identity sequences.fasta --percent
+
+# Convert format by file extension
+helixview-cli convert input.fasta output.clustal</code></pre>
+        <p style="margin-top:12px;">Run <code>helixview-cli --help</code> or <code>helixview-cli &lt;command&gt; --help</code> for full option lists.</p>
+
+        <!-- ─────────── SHORTCUTS ─────────── -->
+        <h2 id="shortcuts">Keyboard shortcuts</h2>
+
+        <h3 style="margin-top:24px;">File &amp; navigation</h3>
+        <table class="shortcut-table">
+          <thead><tr><th>Shortcut</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>Ctrl+O</kbd></td><td>Open file</td></tr>
+            <tr><td><kbd>Ctrl+S</kbd></td><td>Save file</td></tr>
+            <tr><td><kbd>Ctrl+E</kbd></td><td>Export…</td></tr>
+            <tr><td><kbd>Ctrl+P</kbd></td><td>Command palette — search for any action by name</td></tr>
+            <tr><td><kbd>Ctrl+F</kbd></td><td>Find / search in alignment</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Close dialog / clear search / deselect</td></tr>
+          </tbody>
+        </table>
+
+        <h3 style="margin-top:24px;">Alignment view</h3>
+        <table class="shortcut-table">
+          <thead><tr><th>Shortcut</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>+</kbd> / <kbd>-</kbd></td><td>Zoom in / zoom out</td></tr>
+            <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Scroll alignment left / right</td></tr>
+            <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td>Jump to first / last column</td></tr>
+            <tr><td><kbd>Space</kbd></td><td>Insert gap at cursor</td></tr>
+            <tr><td><kbd>Backspace</kbd></td><td>Delete gap at cursor</td></tr>
+            <tr><td><kbd>Ctrl+Z</kbd></td><td>Undo</td></tr>
+            <tr><td><kbd>Ctrl+Y</kbd></td><td>Redo</td></tr>
+            <tr><td><kbd>Ctrl+A</kbd></td><td>Select all sequences</td></tr>
+          </tbody>
+        </table>
+
+        <h3 style="margin-top:24px;">Command palette (Ctrl+P)</h3>
+        <table class="shortcut-table">
+          <thead><tr><th>Shortcut</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>Navigate command list</td></tr>
+            <tr><td><kbd>Enter</kbd></td><td>Run selected command</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Close palette</td></tr>
+          </tbody>
+        </table>
+
+        <!-- ─────────── FILE FORMATS ─────────── -->
+        <h2 id="formats">File formats</h2>
+        <table class="shortcut-table">
+          <thead><tr><th>Format</th><th>Extension(s)</th><th>Read</th><th>Write</th></tr></thead>
+          <tbody>
+            <tr><td>FASTA</td><td><code>.fasta .fa .fna .faa</code></td><td>✓</td><td>✓</td></tr>
+            <tr><td>GenBank</td><td><code>.gb .gbk .genbank</code></td><td>✓</td><td>✓</td></tr>
+            <tr><td>Clustal</td><td><code>.aln .clustal</code></td><td>✓</td><td>✓</td></tr>
+            <tr><td>PHYLIP</td><td><code>.phy .phylip</code></td><td>✓</td><td>✓</td></tr>
+            <tr><td>Stockholm</td><td><code>.sto .stockholm</code></td><td>✓</td><td>—</td></tr>
+            <tr><td>AB1 trace</td><td><code>.ab1</code></td><td>✓</td><td>—</td></tr>
+            <tr><td>HelixView project</td><td><code>.hvproj</code></td><td>✓</td><td>✓</td></tr>
+          </tbody>
+        </table>
+
+      </div><!-- /docs-content -->
+    </div><!-- /docs-layout -->
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <span>© 2026 HelixView Contributors — GPL-3.0</span>
+    <span>
+      <a href="https://github.com/librebiology/helixview">GitHub</a> ·
+      <a href="download.html">Download</a> ·
+      <a href="docs.html">Docs</a>
+    </span>
+  </div>
+</footer>
+
+</body>
+</html>

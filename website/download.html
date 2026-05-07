@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Download — HelixView</title>
+  <meta name="description" content="Download HelixView for Windows, macOS and Linux.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="index.html">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <path d="M5 3 Q11 8 17 3" stroke="#2a7a4b" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <path d="M5 8 Q11 13 17 8" stroke="#2a7a4b" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <path d="M5 13 Q11 18 17 13" stroke="#2a7a4b" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <line x1="5" y1="3" x2="5" y2="19" stroke="#1a3a52" stroke-width="1.5"/>
+        <line x1="17" y1="3" x2="17" y2="19" stroke="#1a3a52" stroke-width="1.5"/>
+      </svg>
+      HelixView
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="docs.html">Documentation</a></li>
+      <li><a href="download.html">Download</a></li>
+      <li><a href="https://github.com/librebiology/helixview">GitHub</a></li>
+    </ul>
+  </div>
+</nav>
+
+<section style="padding-top:56px;">
+  <div class="container">
+    <div class="section-label">Download</div>
+    <h1>Download HelixView</h1>
+    <p style="margin-top:12px; max-width:540px; color:var(--muted);">
+      HelixView is free and open-source under the GPL-3.0 licence. No registration required.
+    </p>
+
+    <div class="dl-grid" style="margin-top:40px;">
+
+      <div class="dl-card">
+        <div class="dl-icon">🪟</div>
+        <h3>Windows</h3>
+        <p>Windows 10 or later (64-bit). Installer sets up shortcuts and file associations automatically.</p>
+        <a href="https://github.com/librebiology/helixview/releases/latest/download/helixview-windows-x64.msi"
+           class="btn btn-primary">↓ Download .msi</a>
+        <p style="margin-top:10px; font-size:0.8rem; color:var(--muted);">Also available: <a href="https://github.com/librebiology/helixview/releases/latest/download/helixview-windows-x64.exe">portable .exe</a></p>
+      </div>
+
+      <div class="dl-card">
+        <div class="dl-icon">🍎</div>
+        <h3>macOS</h3>
+        <p>macOS 12 Monterey or later. Universal binary (Apple Silicon + Intel). Drag HelixView.app to Applications.</p>
+        <a href="https://github.com/librebiology/helixview/releases/latest/download/HelixView-macos.dmg"
+           class="btn btn-primary">↓ Download .dmg</a>
+        <p style="margin-top:10px; font-size:0.8rem; color:var(--muted);">Right-click → Open on first launch (Gatekeeper)</p>
+      </div>
+
+      <div class="dl-card">
+        <div class="dl-icon">🐧</div>
+        <h3>Linux</h3>
+        <p>Any x86_64 Linux distro (Ubuntu, Fedora, Arch, etc.). AppImage — no install needed, just make it executable.</p>
+        <a href="https://github.com/librebiology/helixview/releases/latest/download/HelixView-x86_64.AppImage"
+           class="btn btn-primary">↓ Download AppImage</a>
+        <p style="margin-top:10px; font-size:0.8rem; color:var(--muted);">
+          <code>chmod +x HelixView-*.AppImage &amp;&amp; ./HelixView-*.AppImage</code>
+        </p>
+      </div>
+
+    </div>
+
+    <p class="version-note">
+      Current release: <strong>v0.1.0</strong> ·
+      <a href="https://github.com/librebiology/helixview/releases">All releases &amp; changelogs</a>
+    </p>
+
+    <div class="callout" style="margin-top:40px; max-width:680px;">
+      <strong>Command-line tools</strong> — the <code>helixview-cli</code> binary is included in all packages.
+      Run <code>helixview-cli --help</code> in a terminal to see available commands
+      (<code>convert</code>, <code>stats</code>, <code>entropy</code>, <code>consensus</code>, <code>mi</code>, <code>identity</code>).
+    </div>
+
+    <!-- Build from source -->
+    <div style="margin-top:56px;">
+      <h2>Build from source</h2>
+      <p style="margin-top:8px; color:var(--muted); max-width:540px;">
+        Requires <a href="https://rustup.rs">Rust 1.78+</a> and the usual C build tools.
+        GPU drivers with Vulkan / Metal / DX12 support are needed for the renderer.
+      </p>
+      <pre style="margin-top:16px; background:var(--bg-alt); border:1px solid var(--border); border-radius:var(--radius); padding:18px; font-size:0.85rem; overflow-x:auto;"><code>git clone https://github.com/librebiology/helixview
+cd helixview
+cargo build --release
+./target/release/helixview</code></pre>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <span>© 2026 HelixView Contributors — GPL-3.0</span>
+    <span>
+      <a href="https://github.com/librebiology/helixview">GitHub</a> ·
+      <a href="download.html">Download</a> ·
+      <a href="docs.html">Docs</a>
+    </span>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,231 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            libvulkan-dev libwayland-dev libxkbcommon-dev \
+            libx11-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
+            pkg-config fuse libfuse2 wget \
+            librsvg2-bin imagemagick
+
+      - name: Generate icons
+        run: |
+          for SIZE in 16 32 48 64 128 256; do
+            rsvg-convert -w $SIZE -h $SIZE packaging/helixview.svg > packaging/icon_${SIZE}.png
+          done
+          convert packaging/icon_{256,128,64,48,32,16}.png packaging/helixview.ico
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: linux-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Assemble AppDir
+        run: |
+          mkdir -p AppDir/usr/bin AppDir/usr/share/applications AppDir/usr/share/icons/hicolor/256x256/apps
+          cp target/release/helixview     AppDir/usr/bin/helixview
+          cp target/release/helixview-cli AppDir/usr/bin/helixview-cli
+          cp packaging/helixview.desktop  AppDir/usr/share/applications/helixview.desktop
+          cp packaging/helixview.svg      AppDir/usr/share/icons/hicolor/256x256/apps/helixview.svg
+          cp packaging/AppDir/AppRun      AppDir/AppRun
+          chmod +x AppDir/AppRun AppDir/usr/bin/helixview AppDir/usr/bin/helixview-cli
+          ln -sf usr/share/icons/hicolor/256x256/apps/helixview.svg AppDir/helixview.svg
+          ln -sf usr/share/applications/helixview.desktop AppDir/helixview.desktop
+
+      - name: Download appimagetool
+        run: |
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
+
+      - name: Build AppImage
+        run: ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 ./appimagetool-x86_64.AppImage AppDir HelixView-x86_64.AppImage
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-appimage
+          path: HelixView-x86_64.AppImage
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: windows-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Install cargo-wix
+        run: cargo install cargo-wix --locked
+
+      - name: Build MSI
+        run: cargo wix --no-build --nocapture
+
+      - name: Collect artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item target\release\helixview.exe     dist\helixview-windows-x64.exe
+          Copy-Item target\release\helixview-cli.exe dist\helixview-cli-windows-x64.exe
+          Get-ChildItem target\wix -Filter *.msi | Copy-Item -Destination dist\helixview-windows-x64.msi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist\
+
+  build-macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: macos-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Generate ICNS icon
+        run: |
+          brew install librsvg
+          mkdir -p AppIcon.iconset
+          for SIZE in 16 32 64 128 256 512; do
+            rsvg-convert -w $SIZE -h $SIZE packaging/helixview.svg > AppIcon.iconset/icon_${SIZE}x${SIZE}.png
+            rsvg-convert -w $((SIZE*2)) -h $((SIZE*2)) packaging/helixview.svg > AppIcon.iconset/icon_${SIZE}x${SIZE}@2x.png
+          done
+          iconutil -c icns AppIcon.iconset -o packaging/AppIcon.icns
+
+      - name: Build (arm64 + x86_64)
+        run: |
+          cargo build --release --target aarch64-apple-darwin
+          cargo build --release --target x86_64-apple-darwin
+
+      - name: Create universal binary
+        run: |
+          lipo -create \
+            target/aarch64-apple-darwin/release/helixview \
+            target/x86_64-apple-darwin/release/helixview \
+            -output helixview-universal
+          lipo -create \
+            target/aarch64-apple-darwin/release/helixview-cli \
+            target/x86_64-apple-darwin/release/helixview-cli \
+            -output helixview-cli-universal
+
+      - name: Assemble .app bundle
+        run: |
+          APP=HelixView.app
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+          cp helixview-universal     "$APP/Contents/MacOS/HelixView"
+          cp helixview-cli-universal "$APP/Contents/MacOS/helixview-cli"
+          cp packaging/AppIcon.icns  "$APP/Contents/Resources/AppIcon.icns"
+          chmod +x "$APP/Contents/MacOS/HelixView" "$APP/Contents/MacOS/helixview-cli"
+          cat > "$APP/Contents/Info.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleName</key>            <string>HelixView</string>
+            <key>CFBundleDisplayName</key>     <string>HelixView</string>
+            <key>CFBundleIdentifier</key>      <string>org.librebiology.helixview</string>
+            <key>CFBundleVersion</key>         <string>${VERSION}</string>
+            <key>CFBundleShortVersionString</key> <string>${VERSION}</string>
+            <key>CFBundleExecutable</key>      <string>HelixView</string>
+            <key>CFBundleIconFile</key>        <string>AppIcon</string>
+            <key>CFBundlePackageType</key>     <string>APPL</string>
+            <key>LSMinimumSystemVersion</key>  <string>12.0</string>
+            <key>NSHighResolutionCapable</key> <true/>
+            <key>CFBundleDocumentTypes</key>
+            <array>
+              <dict>
+                <key>CFBundleTypeExtensions</key>
+                <array><string>fasta</string><string>fa</string><string>gb</string><string>gbk</string><string>hvproj</string></array>
+                <key>CFBundleTypeRole</key><string>Editor</string>
+              </dict>
+            </array>
+          </dict>
+          </plist>
+          PLIST
+
+      - name: Create DMG
+        run: hdiutil create -volname HelixView -srcfolder HelixView.app -ov -format UDZO HelixView-macos.dmg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: |
+            HelixView-macos.dmg
+            helixview-cli-universal
+
+  release:
+    needs: [build-linux, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Collect artifacts
+        run: |
+          cp artifacts/linux-appimage/HelixView-x86_64.AppImage  ./HelixView-x86_64.AppImage
+          cp artifacts/windows/helixview-windows-x64.exe         ./helixview-windows-x64.exe
+          cp artifacts/windows/helixview-cli-windows-x64.exe     ./helixview-cli-windows-x64.exe
+          cp artifacts/windows/helixview-windows-x64.msi         ./helixview-windows-x64.msi
+          cp artifacts/macos/HelixView-macos.dmg                 ./HelixView-macos.dmg
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.biology_actions }}
+          generate_release_notes: true
+          files: |
+            HelixView-x86_64.AppImage
+            helixview-windows-x64.exe
+            helixview-cli-windows-x64.exe
+            helixview-windows-x64.msi
+            HelixView-macos.dmg

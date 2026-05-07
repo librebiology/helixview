@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=HelixView
+GenericName=Sequence Alignment Editor
+Comment=Modern biological sequence alignment editor
+Exec=helixview %f
+Icon=helixview
+Terminal=false
+Type=Application
+Categories=Science;Biology;Education;
+MimeType=application/x-fasta;application/x-genbank;
+Keywords=bioinformatics;alignment;sequence;FASTA;GenBank;biology;
+StartupNotify=true

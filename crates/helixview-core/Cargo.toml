@@ -1,0 +1,10 @@
+[package]
+name = "helixview-core"
+version = "0.1.0"
+edition = "2021"
+description = "Core data model and algorithms — no UI dependencies"
+
+[dependencies]
+thiserror = { workspace = true }
+serde     = { workspace = true }
+rayon     = { workspace = true }

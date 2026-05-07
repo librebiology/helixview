@@ -1,0 +1,45 @@
+LOCUS       ECOLI_16S_DEMO        534 bp    DNA     linear   BCT 16-APR-2026
+DEFINITION  Escherichia coli 16S ribosomal RNA gene fragment, demo.
+ACCESSION   DEMO000001
+VERSION     DEMO000001.1
+KEYWORDS    16S ribosomal RNA; rRNA.
+SOURCE      Escherichia coli
+  ORGANISM  Escherichia coli
+            Bacteria; Proteobacteria; Gammaproteobacteria; Enterobacterales;
+            Enterobacteriaceae; Escherichia.
+FEATURES             Location/Qualifiers
+     source          1..534
+                     /organism="Escherichia coli"
+                     /mol_type="genomic DNA"
+                     /strain="K-12"
+     rRNA            1..534
+                     /product="16S ribosomal RNA"
+                     /note="small subunit ribosomal RNA"
+     misc_feature    1..20
+                     /note="V1 hypervariable region start"
+     stem_loop       38..72
+                     /note="Stem-loop I; conserved secondary structure element"
+     misc_feature    75..150
+                     /note="V2 hypervariable region"
+     misc_feature    175..210
+                     /note="Conserved 174-box; highly conserved across bacteria"
+     stem_loop       225..280
+                     /note="Central pseudoknot stem; critical for ribosome assembly"
+     misc_feature    300..380
+                     /note="V4 hypervariable region; used for genus-level taxonomy"
+     CDS             complement(400..480)
+                     /note="ORF in complementary strand (demo)"
+                     /translation="MKILLIEDNKPQREALLLTYLEKAGYQVDCAQDGVEALDLLTPDIVLLDLM"
+     misc_feature    490..534
+                     /note="V9 hypervariable region; 3' end signature"
+ORIGIN
+        1 aaattgaaga gtttgatcat ggctcagatt gaacgctggc ggcaggccta acacatgcaa
+       61 gtcgaacggt aacaggaaga agcttgcttc tttgctgacg agtggcggac gggtgagtaa
+      121 tgtctgggaa actgcctgat ggaggggga taactactgg aaacggtagc taataccgca
+      181 taacgtcgca agaccaaaga gggggacctt cgggcctctt gccatcagat gtgcccagat
+      241 gggattagct agtaggtggg gtaacggctc acctaggcga cgatccctag ctggtctgag
+      301 aggatgacca gccacactgg aactgagaca cggtccagac tcctacggga ggcagcagtg
+      361 gggaatattg cacaatgggc gcaagcctga tgcagccatg ccgcgtgtat gaagaaggcc
+      421 ttcgggttgt aaagtacttt cagcggggag gaaggtgttg tggttaataa ccgcagcaat
+      481 tgacgttacc cgcagaagaa gcaccggcta actccgtgcc
+//

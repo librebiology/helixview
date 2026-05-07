@@ -1,0 +1,66 @@
+[workspace]
+members = [
+    "crates/helixview-core",
+    "crates/helixview-formats",
+    "crates/helixview-analysis",
+    "crates/helixview-external",
+    "crates/helixview-ui",
+    "crates/helixview-cli",
+]
+default-members = ["."]
+resolver = "2"
+
+[package]
+name = "helixview"
+version = "0.1.0"
+edition = "2021"
+authors = ["HelixView Contributors"]
+description = "A modern, cross-platform biological sequence alignment editor"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/librebiology/helixview"
+
+[[bin]]
+name = "helixview"
+path = "src/main.rs"
+
+[dependencies]
+helixview-ui = { path = "crates/helixview-ui" }
+
+[workspace.dependencies]
+# Core bioinformatics / data
+helixview-core     = { path = "crates/helixview-core" }
+helixview-formats  = { path = "crates/helixview-formats" }
+helixview-analysis = { path = "crates/helixview-analysis" }
+helixview-external = { path = "crates/helixview-external" }
+
+# Error handling
+thiserror = "2"
+anyhow    = "1"
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# Serialization
+serde      = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml       = { version = "0.8", features = ["parse"] }
+dirs       = "5"
+svg2pdf    = "0.13"
+
+# Async + threading
+tokio   = { version = "1", features = ["full"] }
+rayon   = "1"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+
+# Parsing
+nom = "7"
+
+# Logging
+tracing            = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[profile.release]
+opt-level     = 3
+lto           = true
+codegen-units = 1
+strip         = true
