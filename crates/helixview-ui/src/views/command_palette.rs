@@ -2,7 +2,7 @@
 
 use crate::app::Message;
 use iced::{
-    widget::{button, column, container, row, text, text_input},
+    widget::{button, column, container, text, text_input},
     Background, Border, Color, Element, Length,
 };
 

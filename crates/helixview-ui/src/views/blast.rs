@@ -9,7 +9,7 @@ use iced::{
 };
 
 /// Render the BLAST panel as a full-screen results view.
-pub fn blast_view<'a>(state: &'a BlastState, rid: Option<&'a str>) -> Element<'a, Message> {
+pub fn blast_view<'a>(state: &'a BlastState, _rid: Option<&'a str>) -> Element<'a, Message> {
     let back_btn = button(text("< Back").size(13))
         .padding([4, 12])
         .on_press(Message::CloseBlast);

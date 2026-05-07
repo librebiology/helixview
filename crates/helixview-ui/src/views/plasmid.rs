@@ -1011,7 +1011,7 @@ fn core_to_iced(c: helixview_core::color::Color) -> Color {
 
 fn draw_plasmid(
     frame: &mut Frame<iced::Renderer>,
-    frame_size: Size, // snapped frame (for background fill)
+    _frame_size: Size, // snapped frame (for background fill)
     visible: Size,    // actual canvas bounds (for centering)
     aln: &SeqAlignment,
     seq_idx: usize,

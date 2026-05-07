@@ -4,7 +4,6 @@
 //! Each tab stores the serialized Alignment, view settings, and flags.
 //! On restore every tab is reopened in a new slot; the active tab index is preserved.
 
-use std::collections::BTreeSet;
 use std::path::Path;
 use std::sync::Arc;
 

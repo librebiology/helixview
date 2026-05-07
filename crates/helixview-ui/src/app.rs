@@ -4108,7 +4108,6 @@ pub fn subscription(_app: &HelixViewApp) -> iced::Subscription<Message> {
 
 fn tab_bar(app: &HelixViewApp) -> iced::widget::Row<'_, Message> {
     use iced::widget::{button, horizontal_space, row, text};
-    use iced::Length;
 
     let mut r = row![].spacing(2).padding([2, 4]);
     for (i, rec) in app.tabs.iter().enumerate() {
@@ -4255,7 +4254,7 @@ fn view_content(app: &HelixViewApp) -> Element<'_, Message> {
     }
     // Mutual information view.
     if app.show_mutual_info {
-        if let Some(aln) = &app.document {
+        if let Some(_aln) = &app.document {
             return crate::views::mutual_info_view(
                 app.mi_result.as_deref(),
                 app.mi_min_obs,
@@ -4680,9 +4679,10 @@ pub fn run() -> iced::Result {
     let window = {
         let mut w = iced::window::Settings::default();
         w.icon = make_icon();
-        // Set the Wayland app-id / X11 WM_CLASS so the compositor shows
-        // "helixview" instead of the winit default (which renders as "W").
-        w.platform_specific.application_id = "helixview".to_string();
+        #[cfg(target_os = "linux")]
+        {
+            w.platform_specific.application_id = "helixview".to_string();
+        }
         w
     };
 

@@ -6,7 +6,7 @@
 //! Sequences with `SequenceType::Comment / SequenceMask / RnaStructureMask`
 //! are excluded from the analysis.
 
-use helixview_core::{Alignment as SeqAlignment, SequenceType};
+use helixview_core::Alignment as SeqAlignment;
 use rayon::prelude::*;
 use std::collections::HashMap;
 

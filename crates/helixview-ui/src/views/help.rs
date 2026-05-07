@@ -3,7 +3,7 @@
 use crate::app::Message;
 use crate::theme::palette;
 use iced::{
-    widget::{button, column, container, horizontal_space, row, scrollable, text},
+    widget::{button, column, container, row, scrollable, text},
     Alignment, Color, Element, Length,
 };
 
