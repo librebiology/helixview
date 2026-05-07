@@ -23,7 +23,7 @@ fn compute_identity(aligned_a: &[u8], aligned_b: &[u8]) -> f64 {
             continue;
         }
         valid += 1;
-        if !a_gap && !b_gap && a.to_ascii_uppercase() == b.to_ascii_uppercase() {
+        if !a_gap && !b_gap && a.eq_ignore_ascii_case(&b) {
             matches += 1;
         }
     }
@@ -50,17 +50,17 @@ pub fn needleman_wunsch(
     let mut dp = vec![vec![0i32; n + 1]; m + 1];
 
     // Initialise gap rows/columns
-    for i in 0..=m {
-        dp[i][0] = i as i32 * gap_penalty;
+    for (i, row) in dp.iter_mut().enumerate() {
+        row[0] = i as i32 * gap_penalty;
     }
-    for j in 0..=n {
-        dp[0][j] = j as i32 * gap_penalty;
+    for (j, val) in dp[0].iter_mut().enumerate() {
+        *val = j as i32 * gap_penalty;
     }
 
     for i in 1..=m {
         for j in 1..=n {
             let diag = dp[i - 1][j - 1]
-                + if a[i - 1].to_ascii_uppercase() == b[j - 1].to_ascii_uppercase() {
+                + if a[i - 1].eq_ignore_ascii_case(&b[j - 1]) {
                     match_score
                 } else {
                     mismatch
@@ -81,7 +81,7 @@ pub fn needleman_wunsch(
     while i > 0 || j > 0 {
         if i > 0 && j > 0 {
             let diag_score = dp[i - 1][j - 1]
-                + if a[i - 1].to_ascii_uppercase() == b[j - 1].to_ascii_uppercase() {
+                + if a[i - 1].eq_ignore_ascii_case(&b[j - 1]) {
                     match_score
                 } else {
                     mismatch
@@ -145,7 +145,7 @@ pub fn smith_waterman(
     for i in 1..=m {
         for j in 1..=n {
             let diag = dp[i - 1][j - 1]
-                + if a[i - 1].to_ascii_uppercase() == b[j - 1].to_ascii_uppercase() {
+                + if a[i - 1].eq_ignore_ascii_case(&b[j - 1]) {
                     match_score
                 } else {
                     mismatch
@@ -170,7 +170,7 @@ pub fn smith_waterman(
     while i > 0 && j > 0 && dp[i][j] > 0 {
         if i > 0 && j > 0 {
             let diag_score = dp[i - 1][j - 1]
-                + if a[i - 1].to_ascii_uppercase() == b[j - 1].to_ascii_uppercase() {
+                + if a[i - 1].eq_ignore_ascii_case(&b[j - 1]) {
                     match_score
                 } else {
                     mismatch

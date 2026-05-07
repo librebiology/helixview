@@ -19,9 +19,7 @@ fn strip_comments(s: &str) -> String {
         match ch {
             '[' => depth += 1,
             ']' => {
-                if depth > 0 {
-                    depth -= 1;
-                }
+                depth = depth.saturating_sub(1);
             }
             _ => {
                 if depth == 0 {
@@ -134,7 +132,7 @@ pub fn parse_str(text: &str, name: &str) -> Result<Alignment> {
 }
 
 /// Extract the value for `KEY=value` from an uppercase line.
-fn extract_value<'a>(upper: &'a str, key: &str) -> Option<String> {
+fn extract_value(upper: &str, key: &str) -> Option<String> {
     let key_eq = format!("{}=", key);
     let pos = upper.find(&key_eq)?;
     let rest = &upper[pos + key_eq.len()..];

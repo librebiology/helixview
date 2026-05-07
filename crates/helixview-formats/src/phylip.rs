@@ -122,7 +122,7 @@ fn infer_type(residues: &[u8]) -> SequenceType {
         return SequenceType::Protein;
     }
 
-    let has_u = non_gap.iter().any(|&b| b.to_ascii_uppercase() == b'U');
+    let has_u = non_gap.iter().any(|&b| b.eq_ignore_ascii_case(&b'U'));
     if has_u {
         SequenceType::Rna
     } else {

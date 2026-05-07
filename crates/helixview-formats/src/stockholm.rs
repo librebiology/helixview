@@ -85,7 +85,7 @@ fn guess_type(residues: &[u8]) -> SequenceType {
     if is_protein {
         return SequenceType::Protein;
     }
-    if non_gap.iter().any(|&b| b.to_ascii_uppercase() == b'U') {
+    if non_gap.iter().any(|&b| b.eq_ignore_ascii_case(&b'U')) {
         SequenceType::Rna
     } else {
         SequenceType::Dna

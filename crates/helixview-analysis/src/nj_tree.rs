@@ -55,9 +55,9 @@ fn neighbour_joining(dist: &[Vec<f64>], names: &[String]) -> PhyloTree {
     let get = |d: &[f64], i: usize, j: usize| d[i * cap + j];
     let set = |d: &mut Vec<f64>, i: usize, j: usize, v: f64| d[i * cap + j] = v;
 
-    for i in 0..n {
-        for j in 0..n {
-            set(&mut d, i, j, dist[i][j]);
+    for (i, row_dist) in dist.iter().enumerate().take(n) {
+        for (j, &v) in row_dist.iter().enumerate().take(n) {
+            set(&mut d, i, j, v);
         }
     }
 

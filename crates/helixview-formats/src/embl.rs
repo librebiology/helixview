@@ -160,11 +160,10 @@ fn parse_record(record: &str) -> Option<Sequence> {
                     cur_loc = loc;
                 } else if leading >= 16 {
                     let rest = ft_content[leading..].trim_start();
-                    if rest.starts_with('/') {
+                    if let Some(body) = rest.strip_prefix('/') {
                         // New qualifier
                         flush_embl_qualifier(&mut cur_qname, &mut cur_qval, &mut cur_quals);
                         in_ft_location = false;
-                        let body = &rest[1..]; // strip '/'
                         if let Some(eq) = body.find('=') {
                             let qkey = body[..eq].to_string();
                             let raw_val = body[eq + 1..].trim_matches('"').to_string();

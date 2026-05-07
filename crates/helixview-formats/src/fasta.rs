@@ -30,7 +30,7 @@ pub fn parse_str(text: &str, name: &str) -> Result<Alignment> {
     for line in text.lines() {
         let line = line.trim_end();
 
-        if line.starts_with('>') {
+        if let Some(rest) = line.strip_prefix('>') {
             // Flush previous entry.
             if let Some(seq_name) = current_name.take() {
                 aln.push(build_sequence(
@@ -39,7 +39,7 @@ pub fn parse_str(text: &str, name: &str) -> Result<Alignment> {
                 ));
             }
             // Start new entry — everything after '>' is the name/description.
-            current_name = Some(line[1..].trim().to_string());
+            current_name = Some(rest.trim().to_string());
         } else if current_name.is_some() {
             // Accumulate residues, skip whitespace.
             for b in line.bytes() {
@@ -110,8 +110,8 @@ pub fn guess_type(residues: &[u8]) -> SequenceType {
     let fraction = na_chars as f64 / non_gap.len() as f64;
     if fraction >= 0.85 {
         // Distinguish DNA vs RNA by presence of U.
-        let has_u = non_gap.iter().any(|&b| b.to_ascii_uppercase() == b'U');
-        let has_t = non_gap.iter().any(|&b| b.to_ascii_uppercase() == b'T');
+        let has_u = non_gap.iter().any(|&b| b.eq_ignore_ascii_case(&b'U'));
+        let has_t = non_gap.iter().any(|&b| b.eq_ignore_ascii_case(&b'T'));
         if has_u && !has_t {
             SequenceType::Rna
         } else {

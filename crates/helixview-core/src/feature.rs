@@ -1,34 +1,24 @@
 use crate::color::Color;
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum FeatureShape {
+    #[default]
     Rectangle,
     Oval,
     Diamond,
     Arrow,
 }
 
-impl Default for FeatureShape {
-    fn default() -> Self {
-        Self::Rectangle
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum FeatureDirection {
     Forward,
     Reverse,
+    #[default]
     None,
 }
 
-impl Default for FeatureDirection {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
 /// All 67 standard GenBank feature key types, plus a catch-all.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum FeatureType {
     ThreePrimeClip,
     ThreePrimeUtr,
@@ -52,6 +42,7 @@ pub enum FeatureType {
     MatPeptide,
     MiscBinding,
     MiscDifference,
+    #[default]
     MiscFeature,
     MiscRecomb,
     MiscRNA,
@@ -98,12 +89,6 @@ pub enum FeatureType {
     Virion,
     NonStdResidue,
     Custom(String),
-}
-
-impl Default for FeatureType {
-    fn default() -> Self {
-        Self::MiscFeature
-    }
 }
 
 impl FeatureType {
@@ -234,5 +219,9 @@ impl Feature {
     /// Length in residues (ungapped).
     pub fn len(&self) -> usize {
         self.end.saturating_sub(self.start) + 1
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.start == self.end
     }
 }

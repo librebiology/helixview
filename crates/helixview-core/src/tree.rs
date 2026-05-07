@@ -167,6 +167,7 @@ pub fn layout_cladogram(root: &TreeNode) -> Vec<LayoutNode> {
     let mut nodes: Vec<LayoutNode> = Vec::new();
     let mut leaf_counter: usize = 0;
 
+    #[allow(clippy::too_many_arguments)]
     fn visit(
         node: &TreeNode,
         depth: usize,

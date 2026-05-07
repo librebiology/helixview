@@ -12,7 +12,7 @@ pub fn pairwise_identity(a: &[u8], b: &[u8]) -> f64 {
             continue;
         }
         denom += 1;
-        if ra.to_ascii_uppercase() == rb.to_ascii_uppercase() {
+        if ra.eq_ignore_ascii_case(&rb) {
             numer += 1;
         }
     }
@@ -29,12 +29,6 @@ pub fn pairwise_identity(a: &[u8], b: &[u8]) -> f64 {
 pub fn identity_matrix(aln: &Alignment) -> Vec<Vec<f64>> {
     let n = aln.seq_count();
     let mut matrix = vec![vec![0.0f64; n]; n];
-    for row in &mut matrix {
-        for (j, val) in row.iter_mut().enumerate() {
-            let _ = j;
-            let _ = val;
-        }
-    }
 
     let pairs: Vec<(usize, usize)> = (0..n)
         .flat_map(|i| (i + 1..n).map(move |j| (i, j)))
@@ -48,8 +42,8 @@ pub fn identity_matrix(aln: &Alignment) -> Vec<Vec<f64>> {
         })
         .collect();
 
-    for i in 0..n {
-        matrix[i][i] = 1.0;
+    for (i, row) in matrix.iter_mut().enumerate() {
+        row[i] = 1.0;
     }
     for (i, j, id) in results {
         matrix[i][j] = id;

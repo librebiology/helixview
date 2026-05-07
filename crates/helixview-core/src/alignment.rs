@@ -71,8 +71,8 @@ impl Alignment {
         let cols = self.col_count();
         if cols > 0 && seq.len() < cols {
             let pad = cols - seq.len();
-            seq.residues.extend(std::iter::repeat(b'~').take(pad));
-            seq.gap_locks.extend(std::iter::repeat(false).take(pad));
+            seq.residues.extend(std::iter::repeat_n(b'~', pad));
+            seq.gap_locks.extend(std::iter::repeat_n(false, pad));
         }
         self.sequences.push(seq);
     }
