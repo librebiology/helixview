@@ -8,17 +8,17 @@
 //!   - `SQ` line + indented sequence blocks
 //!   - Gap characters (`-`) preserved as-is
 
+use crate::{FormatError, Result};
 use helixview_core::{
     alignment::Alignment,
-    sequence::{Sequence, SequenceType},
     feature::{Feature, FeatureDirection, FeatureShape, FeatureType},
+    sequence::{Sequence, SequenceType},
 };
-use crate::{FormatError, Result};
 use std::path::Path;
 
 pub fn parse_bytes(data: &[u8], name: &str) -> Result<Alignment> {
-    let text = std::str::from_utf8(data)
-        .map_err(|e| FormatError::Parse(format!("Invalid UTF-8: {e}")))?;
+    let text =
+        std::str::from_utf8(data).map_err(|e| FormatError::Parse(format!("Invalid UTF-8: {e}")))?;
     parse_str(text, name)
 }
 
@@ -31,9 +31,13 @@ pub fn parse_str(text: &str, name: &str) -> Result<Alignment> {
 
     for record in records {
         let record = record.trim();
-        if record.is_empty() { continue; }
+        if record.is_empty() {
+            continue;
+        }
         // Skip if the record is just "//" leftovers
-        if record == "//" { continue; }
+        if record == "//" {
+            continue;
+        }
         if let Some(seq) = parse_record(record) {
             aln.push(seq);
         }
@@ -214,7 +218,11 @@ fn parse_record(record: &str) -> Option<Sequence> {
     seq.seq_type = seq_type;
     seq.features = features;
     // Store description in genbank.definition for reuse in write
-    seq.genbank.definition = if description.is_empty() { None } else { Some(description) };
+    seq.genbank.definition = if description.is_empty() {
+        None
+    } else {
+        Some(description)
+    };
 
     Some(seq)
 }
@@ -248,13 +256,21 @@ fn build_embl_feature(key: &str, location: &str, quals: &[(String, String)]) -> 
 
     let (start, end, direction) = parse_embl_location(location.trim())?;
 
-    let name = quals.iter()
+    let name = quals
+        .iter()
         .find(|(k, _)| k == "gene" || k == "locus_tag" || k == "product")
         .map(|(_, v)| v.clone())
         .unwrap_or_else(|| key.to_string());
 
-    let description = quals.iter()
-        .map(|(k, v)| if v.is_empty() { format!("/{k}") } else { format!("/{k}={v}") })
+    let description = quals
+        .iter()
+        .map(|(k, v)| {
+            if v.is_empty() {
+                format!("/{k}")
+            } else {
+                format!("/{k}={v}")
+            }
+        })
         .collect::<Vec<_>>()
         .join("\n");
 
@@ -295,7 +311,9 @@ fn parse_embl_location(loc: &str) -> Option<(usize, usize, FeatureDirection)> {
         let mut max_end = 0usize;
         for part in inner.split(',') {
             let part = part.trim();
-            if part.is_empty() { continue; }
+            if part.is_empty() {
+                continue;
+            }
             if let Some((s, e, _)) = parse_embl_location(part) {
                 min_start = min_start.min(s);
                 max_end = max_end.max(e);
@@ -310,15 +328,29 @@ fn parse_embl_location(loc: &str) -> Option<(usize, usize, FeatureDirection)> {
     // Simple range: N..M
     let s = loc.trim_start_matches('<').trim_start_matches('>');
     if let Some(dot_pos) = s.find("..") {
-        let s_part = s[..dot_pos].trim_start_matches('<').trim_start_matches('>').trim();
-        let e_part = s[dot_pos + 2..].trim_start_matches('<').trim_start_matches('>').trim();
+        let s_part = s[..dot_pos]
+            .trim_start_matches('<')
+            .trim_start_matches('>')
+            .trim();
+        let e_part = s[dot_pos + 2..]
+            .trim_start_matches('<')
+            .trim_start_matches('>')
+            .trim();
         let start: usize = s_part.parse().ok()?;
         let end: usize = e_part.parse().ok()?;
         // EMBL is 1-based inclusive; convert to 0-based inclusive.
-        Some((start.saturating_sub(1), end.saturating_sub(1), FeatureDirection::Forward))
+        Some((
+            start.saturating_sub(1),
+            end.saturating_sub(1),
+            FeatureDirection::Forward,
+        ))
     } else {
         let pos: usize = s.trim().parse().ok()?;
-        Some((pos.saturating_sub(1), pos.saturating_sub(1), FeatureDirection::None))
+        Some((
+            pos.saturating_sub(1),
+            pos.saturating_sub(1),
+            FeatureDirection::None,
+        ))
     }
 }
 
@@ -339,10 +371,10 @@ pub fn to_string(aln: &Alignment) -> Result<String> {
 fn write_record(out: &mut String, seq: &Sequence) -> Result<()> {
     let len = seq.true_len();
     let mol_type = match seq.seq_type {
-        SequenceType::Dna     => "DNA",
-        SequenceType::Rna     => "RNA",
+        SequenceType::Dna => "DNA",
+        SequenceType::Rna => "RNA",
         SequenceType::Protein => "AA",
-        _                     => "DNA",
+        _ => "DNA",
     };
 
     // ID line
@@ -386,7 +418,9 @@ fn write_record(out: &mut String, seq: &Sequence) -> Result<()> {
     }
 
     // SQ line
-    let raw: Vec<u8> = seq.residues.iter()
+    let raw: Vec<u8> = seq
+        .residues
+        .iter()
         .copied()
         .filter(|&b| !matches!(b, b'~' | b'.'))
         .collect();
@@ -400,16 +434,22 @@ fn write_record(out: &mut String, seq: &Sequence) -> Result<()> {
 
     out.push_str(&format!(
         "SQ   Sequence {} BP; {} A; {} C; {} G; {} T; {} other;\n",
-        raw.len(), a, c, g, t, other
+        raw.len(),
+        a,
+        c,
+        g,
+        t,
+        other
     ));
 
     // Write sequence in blocks of 60 chars (6 groups of 10), with position at end
     for (i, chunk) in raw.chunks(60).enumerate() {
         out.push_str("     ");
         for (j, sub) in chunk.chunks(10).enumerate() {
-            if j > 0 { out.push(' '); }
-            let s = std::str::from_utf8(sub)
-                .map_err(|e| FormatError::Parse(e.to_string()))?;
+            if j > 0 {
+                out.push(' ');
+            }
+            let s = std::str::from_utf8(sub).map_err(|e| FormatError::Parse(e.to_string()))?;
             out.push_str(&s.to_lowercase());
         }
         // Pad to 66 chars of sequence (6 groups of 10 + 5 spaces), then position
@@ -426,20 +466,20 @@ fn write_record(out: &mut String, seq: &Sequence) -> Result<()> {
 
 fn feature_type_to_embl_key(ft: &FeatureType) -> &'static str {
     match ft {
-        FeatureType::Gene             => "gene",
-        FeatureType::CDS              => "CDS",
-        FeatureType::Exon             => "exon",
-        FeatureType::Intron           => "intron",
-        FeatureType::MRNA             => "mRNA",
-        FeatureType::TRNA             => "tRNA",
-        FeatureType::RRNA             => "rRNA",
-        FeatureType::RepeatRegion     => "repeat_region",
-        FeatureType::Source           => "source",
-        FeatureType::MiscFeature      => "misc_feature",
-        FeatureType::StemLoop         => "stem_loop",
-        FeatureType::Terminator       => "terminator",
-        FeatureType::PromotionalRegion=> "promoter",
-        _                             => "misc_feature",
+        FeatureType::Gene => "gene",
+        FeatureType::CDS => "CDS",
+        FeatureType::Exon => "exon",
+        FeatureType::Intron => "intron",
+        FeatureType::MRNA => "mRNA",
+        FeatureType::TRNA => "tRNA",
+        FeatureType::RRNA => "rRNA",
+        FeatureType::RepeatRegion => "repeat_region",
+        FeatureType::Source => "source",
+        FeatureType::MiscFeature => "misc_feature",
+        FeatureType::StemLoop => "stem_loop",
+        FeatureType::Terminator => "terminator",
+        FeatureType::PromotionalRegion => "promoter",
+        _ => "misc_feature",
     }
 }
 
@@ -500,11 +540,13 @@ SQ   Sequence 20 BP; 5 A; 5 C; 5 G; 5 T; 0 other;
     #[test]
     fn cds_location_0based() {
         let aln = super::parse_str(SAMPLE, "test").unwrap();
-        let cds = aln.sequences[0].features.iter()
+        let cds = aln.sequences[0]
+            .features
+            .iter()
             .find(|f| matches!(f.feature_type, helixview_core::feature::FeatureType::CDS))
             .unwrap();
         assert_eq!(cds.start, 141); // 142 → 141
-        assert_eq!(cds.end,   494); // 495 → 494
+        assert_eq!(cds.end, 494); // 495 → 494
     }
 
     #[test]

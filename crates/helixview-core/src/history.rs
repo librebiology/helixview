@@ -22,7 +22,9 @@ impl Command for InsertGapColumn {
     fn undo(&self, aln: &mut crate::Alignment) {
         aln.delete_column(self.col);
     }
-    fn description(&self) -> &str { "Insert gap column" }
+    fn description(&self) -> &str {
+        "Insert gap column"
+    }
 }
 
 #[derive(Debug)]
@@ -34,15 +36,26 @@ pub struct DeleteColumn {
 
 impl DeleteColumn {
     pub fn new(col: usize) -> Self {
-        Self { col, saved: Vec::new() }
+        Self {
+            col,
+            saved: Vec::new(),
+        }
     }
 }
 
 impl Command for DeleteColumn {
     fn execute(&mut self, aln: &mut crate::Alignment) {
         // Save the column before deleting it
-        self.saved = aln.sequences.iter()
-            .map(|s| if self.col < s.residues.len() { s.residues[self.col] } else { b'-' })
+        self.saved = aln
+            .sequences
+            .iter()
+            .map(|s| {
+                if self.col < s.residues.len() {
+                    s.residues[self.col]
+                } else {
+                    b'-'
+                }
+            })
             .collect();
         aln.delete_column(self.col);
     }
@@ -55,7 +68,9 @@ impl Command for DeleteColumn {
             }
         }
     }
-    fn description(&self) -> &str { "Delete column" }
+    fn description(&self) -> &str {
+        "Delete column"
+    }
 }
 
 #[derive(Debug)]
@@ -68,8 +83,8 @@ pub struct MoveSequence {
 /// `old_bytes` must be pre-populated with the original residues for undo.
 #[derive(Debug)]
 pub struct SetResidues {
-    pub seq_idx:   usize,
-    pub position:  usize,
+    pub seq_idx: usize,
+    pub position: usize,
     pub old_bytes: Vec<u8>,
     pub new_bytes: Vec<u8>,
 }
@@ -93,7 +108,9 @@ impl Command for SetResidues {
             }
         }
     }
-    fn description(&self) -> &str { "Edit residue" }
+    fn description(&self) -> &str {
+        "Edit residue"
+    }
 }
 
 impl Command for MoveSequence {
@@ -103,15 +120,17 @@ impl Command for MoveSequence {
     fn undo(&self, aln: &mut crate::Alignment) {
         aln.move_sequence(self.to, self.from);
     }
-    fn description(&self) -> &str { "Move sequence" }
+    fn description(&self) -> &str {
+        "Move sequence"
+    }
 }
 
 /// Insert `count` gap characters at `col` in a single sequence row.
 #[derive(Debug)]
 pub struct InsertGapInSeq {
     pub seq_idx: usize,
-    pub col:     usize,
-    pub count:   usize,
+    pub col: usize,
+    pub count: usize,
 }
 
 impl Command for InsertGapInSeq {
@@ -121,7 +140,9 @@ impl Command for InsertGapInSeq {
     fn undo(&self, aln: &mut crate::Alignment) {
         aln.delete_gaps(&[self.seq_idx], self.col, self.count);
     }
-    fn description(&self) -> &str { "Insert gap" }
+    fn description(&self) -> &str {
+        "Insert gap"
+    }
 }
 
 /// Delete up to `count` gap characters at `col` in a single sequence row.
@@ -129,14 +150,19 @@ impl Command for InsertGapInSeq {
 #[derive(Debug)]
 pub struct DeleteGapInSeq {
     pub seq_idx: usize,
-    pub col:     usize,
-    pub count:   usize,
+    pub col: usize,
+    pub count: usize,
     saved: Vec<u8>,
 }
 
 impl DeleteGapInSeq {
     pub fn new(seq_idx: usize, col: usize, count: usize) -> Self {
-        Self { seq_idx, col, count, saved: Vec::new() }
+        Self {
+            seq_idx,
+            col,
+            count,
+            saved: Vec::new(),
+        }
     }
 }
 
@@ -162,7 +188,9 @@ impl Command for DeleteGapInSeq {
             }
         }
     }
-    fn description(&self) -> &str { "Delete gap" }
+    fn description(&self) -> &str {
+        "Delete gap"
+    }
 }
 
 // ── Plasmid feature commands ──────────────────────────────────────────────────
@@ -171,27 +199,37 @@ impl Command for DeleteGapInSeq {
 /// Old values are captured on first `execute` for undo.
 #[derive(Debug)]
 pub struct EditFeature {
-    pub seq_idx:   usize,
-    pub feat_idx:  usize,
-    pub new_name:  String,
+    pub seq_idx: usize,
+    pub feat_idx: usize,
+    pub new_name: String,
     pub new_start: usize,
-    pub new_end:   usize,
+    pub new_end: usize,
     pub new_color: crate::color::Color,
-    saved_name:    String,
-    saved_start:   usize,
-    saved_end:     usize,
-    saved_color:   crate::color::Color,
+    saved_name: String,
+    saved_start: usize,
+    saved_end: usize,
+    saved_color: crate::color::Color,
 }
 
 impl EditFeature {
     pub fn new(
-        seq_idx: usize, feat_idx: usize,
-        new_name: String, new_start: usize, new_end: usize, new_color: crate::color::Color,
+        seq_idx: usize,
+        feat_idx: usize,
+        new_name: String,
+        new_start: usize,
+        new_end: usize,
+        new_color: crate::color::Color,
     ) -> Self {
         Self {
-            seq_idx, feat_idx, new_name, new_start, new_end, new_color,
+            seq_idx,
+            feat_idx,
+            new_name,
+            new_start,
+            new_end,
+            new_color,
             saved_name: String::new(),
-            saved_start: 0, saved_end: 0,
+            saved_start: 0,
+            saved_end: 0,
             saved_color: crate::color::Color::rgb(0.0, 0.0, 0.0),
         }
     }
@@ -201,13 +239,13 @@ impl Command for EditFeature {
     fn execute(&mut self, aln: &mut crate::Alignment) {
         if let Some(seq) = aln.sequences.get_mut(self.seq_idx) {
             if let Some(feat) = seq.features.get_mut(self.feat_idx) {
-                self.saved_name  = feat.name.clone();
+                self.saved_name = feat.name.clone();
                 self.saved_start = feat.start;
-                self.saved_end   = feat.end;
+                self.saved_end = feat.end;
                 self.saved_color = feat.color;
-                feat.name  = self.new_name.clone();
+                feat.name = self.new_name.clone();
                 feat.start = self.new_start;
-                feat.end   = self.new_end;
+                feat.end = self.new_end;
                 feat.color = self.new_color;
             }
         }
@@ -215,14 +253,16 @@ impl Command for EditFeature {
     fn undo(&self, aln: &mut crate::Alignment) {
         if let Some(seq) = aln.sequences.get_mut(self.seq_idx) {
             if let Some(feat) = seq.features.get_mut(self.feat_idx) {
-                feat.name  = self.saved_name.clone();
+                feat.name = self.saved_name.clone();
                 feat.start = self.saved_start;
-                feat.end   = self.saved_end;
+                feat.end = self.saved_end;
                 feat.color = self.saved_color;
             }
         }
     }
-    fn description(&self) -> &str { "Edit feature" }
+    fn description(&self) -> &str {
+        "Edit feature"
+    }
 }
 
 /// Add a new feature to a sequence. Undo removes it.
@@ -243,20 +283,26 @@ impl Command for AddFeature {
             seq.features.pop();
         }
     }
-    fn description(&self) -> &str { "Add feature" }
+    fn description(&self) -> &str {
+        "Add feature"
+    }
 }
 
 /// Delete a feature by index. Saves the removed feature for undo.
 #[derive(Debug)]
 pub struct DeleteFeature {
-    pub seq_idx:  usize,
+    pub seq_idx: usize,
     pub feat_idx: usize,
     saved: Option<crate::feature::Feature>,
 }
 
 impl DeleteFeature {
     pub fn new(seq_idx: usize, feat_idx: usize) -> Self {
-        Self { seq_idx, feat_idx, saved: None }
+        Self {
+            seq_idx,
+            feat_idx,
+            saved: None,
+        }
     }
 }
 
@@ -276,22 +322,24 @@ impl Command for DeleteFeature {
             }
         }
     }
-    fn description(&self) -> &str { "Delete feature" }
+    fn description(&self) -> &str {
+        "Delete feature"
+    }
 }
 
 // ── History ──────────────────────────────────────────────────────────────────
 
 /// Undo/redo history with configurable maximum depth.
 pub struct History {
-    past:      Vec<Box<dyn Command>>,
-    future:    Vec<Box<dyn Command>>,
+    past: Vec<Box<dyn Command>>,
+    future: Vec<Box<dyn Command>>,
     max_depth: usize,
 }
 
 impl std::fmt::Debug for History {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("History")
-            .field("past_len",  &self.past.len())
+            .field("past_len", &self.past.len())
             .field("future_len", &self.future.len())
             .field("max_depth", &self.max_depth)
             .finish()
@@ -300,7 +348,11 @@ impl std::fmt::Debug for History {
 
 impl History {
     pub fn new(max_depth: usize) -> Self {
-        Self { past: Vec::new(), future: Vec::new(), max_depth }
+        Self {
+            past: Vec::new(),
+            future: Vec::new(),
+            max_depth,
+        }
     }
 
     /// Execute a command and push it onto the undo stack. Clears the redo stack.
@@ -329,17 +381,25 @@ impl History {
         self.past.last().map(|c| c.description())
     }
 
-    pub fn can_undo(&self) -> bool { !self.past.is_empty() }
-    pub fn can_redo(&self) -> bool { !self.future.is_empty() }
-    pub fn undo_description(&self) -> Option<&str> { self.past.last().map(|c| c.description()) }
-    pub fn redo_description(&self) -> Option<&str> { self.future.last().map(|c| c.description()) }
+    pub fn can_undo(&self) -> bool {
+        !self.past.is_empty()
+    }
+    pub fn can_redo(&self) -> bool {
+        !self.future.is_empty()
+    }
+    pub fn undo_description(&self) -> Option<&str> {
+        self.past.last().map(|c| c.description())
+    }
+    pub fn redo_description(&self) -> Option<&str> {
+        self.future.last().map(|c| c.description())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Alignment;
     use crate::sequence::Sequence;
+    use crate::Alignment;
 
     fn make_aln() -> Alignment {
         let mut aln = Alignment::new("test");
@@ -411,10 +471,14 @@ mod tests {
 
     #[test]
     fn edit_feature_and_undo() {
-        let mut aln  = make_aln_with_features();
+        let mut aln = make_aln_with_features();
         let mut hist = History::new(30);
         let cmd = Box::new(EditFeature::new(
-            0, 0, "renamed".to_string(), 1, 2,
+            0,
+            0,
+            "renamed".to_string(),
+            1,
+            2,
             crate::color::Color::rgb(1.0, 0.0, 0.0),
         ));
         hist.execute(cmd, &mut aln);
@@ -428,10 +492,16 @@ mod tests {
     #[test]
     fn add_feature_and_undo() {
         use crate::feature::Feature;
-        let mut aln  = make_aln_with_features();
+        let mut aln = make_aln_with_features();
         let mut hist = History::new(30);
         let feat = Feature::new("new", 0, 1);
-        hist.execute(Box::new(AddFeature { seq_idx: 0, feature: feat }), &mut aln);
+        hist.execute(
+            Box::new(AddFeature {
+                seq_idx: 0,
+                feature: feat,
+            }),
+            &mut aln,
+        );
         assert_eq!(aln.sequences[0].features.len(), 2);
         hist.undo(&mut aln);
         assert_eq!(aln.sequences[0].features.len(), 1);
@@ -439,7 +509,7 @@ mod tests {
 
     #[test]
     fn delete_feature_and_undo() {
-        let mut aln  = make_aln_with_features();
+        let mut aln = make_aln_with_features();
         let mut hist = History::new(30);
         hist.execute(Box::new(DeleteFeature::new(0, 0)), &mut aln);
         assert!(aln.sequences[0].features.is_empty());

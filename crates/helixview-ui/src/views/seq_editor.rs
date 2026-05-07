@@ -1,10 +1,10 @@
 //! Raw sequence text editor — opened by double-clicking a sequence title.
 
+use helixview_core::sequence::is_gap;
 use iced::{
     widget::{button, column, container, row, text, text_editor},
     Alignment, Background, Border, Element, Font, Length,
 };
-use helixview_core::sequence::is_gap;
 
 use crate::app::Message;
 use crate::theme::palette;
@@ -13,20 +13,19 @@ use crate::theme::palette;
 ///
 /// `content` is the live `text_editor::Content` stored in `HelixViewApp`.
 pub fn seq_editor_view<'a>(
-    seq_name:  &'a str,
-    content:   &'a text_editor::Content,
-    seq_idx:   usize,
+    seq_name: &'a str,
+    content: &'a text_editor::Content,
+    seq_idx: usize,
 ) -> Element<'a, Message> {
-
     // Stats derived from the current editor text
     let raw_text = content.text();
-    let residue_count = raw_text.bytes()
+    let residue_count = raw_text
+        .bytes()
         .filter(|&b| !b.is_ascii_whitespace() && !is_gap(b))
         .count();
-    let gap_count = raw_text.bytes()
-        .filter(|&b| is_gap(b))
-        .count();
-    let total_chars = raw_text.bytes()
+    let gap_count = raw_text.bytes().filter(|&b| is_gap(b)).count();
+    let total_chars = raw_text
+        .bytes()
         .filter(|&b| !b.is_ascii_whitespace())
         .count();
 
@@ -49,9 +48,11 @@ pub fn seq_editor_view<'a>(
     .size(12)
     .color(palette::TEXT_DIM);
 
-    let hint_lbl = text("Paste or type raw sequence (gaps kept). Whitespace and newlines are stripped on Commit.")
-        .size(11)
-        .color(palette::TEXT_DIM);
+    let hint_lbl = text(
+        "Paste or type raw sequence (gaps kept). Whitespace and newlines are stripped on Commit.",
+    )
+    .size(11)
+    .color(palette::TEXT_DIM);
 
     let toolbar = container(
         row![

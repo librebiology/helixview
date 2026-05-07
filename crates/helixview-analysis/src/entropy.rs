@@ -9,7 +9,11 @@ pub fn column_entropy(aln: &Alignment) -> Vec<f64> {
 /// Information content = max_entropy − observed_entropy.
 /// For nucleotides: max = ln(4) ≈ 1.386; for amino acids: max = ln(20) ≈ 3.0.
 pub fn information_content(aln: &Alignment, is_protein: bool) -> Vec<f64> {
-    let max_h = if is_protein { (20f64).ln() } else { (4f64).ln() };
+    let max_h = if is_protein {
+        (20f64).ln()
+    } else {
+        (4f64).ln()
+    };
     aln.column_entropy()
         .into_iter()
         .map(|h| (max_h - h).max(0.0))
@@ -19,7 +23,7 @@ pub fn information_content(aln: &Alignment, is_protein: bool) -> Vec<f64> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use helixview_core::{Alignment, sequence::Sequence};
+    use helixview_core::{sequence::Sequence, Alignment};
 
     fn aln(seqs: &[&[u8]]) -> Alignment {
         let mut a = Alignment::new("t");
@@ -42,7 +46,11 @@ mod tests {
         // One column with A, C, G, T (equal frequency) → H = ln(4).
         let a = aln(&[b"A", b"C", b"G", b"T"]);
         let h = column_entropy(&a)[0];
-        assert!((h - 4f64.ln()).abs() < 1e-10, "expected ln(4)≈{:.4}, got {h}", 4f64.ln());
+        assert!(
+            (h - 4f64.ln()).abs() < 1e-10,
+            "expected ln(4)≈{:.4}, got {h}",
+            4f64.ln()
+        );
     }
 
     #[test]
@@ -50,7 +58,11 @@ mod tests {
         // 50% A, 50% C → H = ln(2).
         let a = aln(&[b"A", b"A", b"C", b"C"]);
         let h = column_entropy(&a)[0];
-        assert!((h - 2f64.ln()).abs() < 1e-10, "expected ln(2)≈{:.4}, got {h}", 2f64.ln());
+        assert!(
+            (h - 2f64.ln()).abs() < 1e-10,
+            "expected ln(2)≈{:.4}, got {h}",
+            2f64.ln()
+        );
     }
 
     #[test]

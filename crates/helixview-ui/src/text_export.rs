@@ -5,32 +5,36 @@ use helixview_core::Alignment as SeqAlignment;
 #[derive(Debug, Clone)]
 pub struct TextExportOptions {
     pub residues_per_row: usize,
-    pub title_chars:      usize,
-    pub show_ruler:       bool,
-    pub number_lines:     bool,
+    pub title_chars: usize,
+    pub show_ruler: bool,
+    pub number_lines: bool,
 }
 
 impl Default for TextExportOptions {
     fn default() -> Self {
         Self {
             residues_per_row: 60,
-            title_chars:      16,
-            show_ruler:       true,
-            number_lines:     true,
+            title_chars: 16,
+            show_ruler: true,
+            number_lines: true,
         }
     }
 }
 
 /// Format the full alignment as a plain-text block string.
 pub fn format_alignment(aln: &SeqAlignment, opts: &TextExportOptions) -> String {
-    if aln.seq_count() == 0 { return String::new(); }
+    if aln.seq_count() == 0 {
+        return String::new();
+    }
 
-    let rpr   = opts.residues_per_row.max(10);
-    let tc    = opts.title_chars.max(4);
+    let rpr = opts.residues_per_row.max(10);
+    let tc = opts.title_chars.max(4);
     let ncols = aln.col_count();
 
     // Pre-truncate/pad titles.
-    let titles: Vec<String> = aln.sequences.iter()
+    let titles: Vec<String> = aln
+        .sequences
+        .iter()
         .map(|s| {
             if s.name.len() > tc {
                 format!("{:.prec$}", s.name, prec = tc)
@@ -55,7 +59,9 @@ pub fn format_alignment(aln: &SeqAlignment, opts: &TextExportOptions) -> String 
         // Ruler row.
         if opts.show_ruler {
             // Left padding (title width + 1 space).
-            for _ in 0..(tc + 1) { out.push(' '); }
+            for _ in 0..(tc + 1) {
+                out.push(' ');
+            }
             let mut ruler_pos = col;
             let mut ruler = String::new();
             while ruler_pos < end {
@@ -67,11 +73,15 @@ pub fn format_alignment(aln: &SeqAlignment, opts: &TextExportOptions) -> String 
                     // Position label, right-padded to fill until next tick.
                     ruler.push_str(&label);
                     let pad = gap.saturating_sub(label.len());
-                    for _ in 0..pad { ruler.push(' '); }
+                    for _ in 0..pad {
+                        ruler.push(' ');
+                    }
                 } else {
                     let remaining = 10 - (ruler_pos % 10);
                     let to_fill = remaining.min(end - ruler_pos);
-                    for _ in 0..to_fill { ruler.push(' '); }
+                    for _ in 0..to_fill {
+                        ruler.push(' ');
+                    }
                 }
                 ruler_pos = next_tick.min(end);
             }
@@ -89,7 +99,8 @@ pub fn format_alignment(aln: &SeqAlignment, opts: &TextExportOptions) -> String 
             }
             // End position.
             if opts.number_lines {
-                let true_pos = seq.residues[..end].iter()
+                let true_pos = seq.residues[..end]
+                    .iter()
                     .filter(|&&b| !matches!(b, b'-' | b'.' | b'~'))
                     .count();
                 out.push_str(&format!("  {:>width$}", true_pos, width = num_width));

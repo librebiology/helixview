@@ -1,9 +1,13 @@
-use std::path::PathBuf;
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
+use std::path::PathBuf;
 
 #[derive(Parser)]
-#[command(name = "helixview-cli", version, about = "Headless bioinformatics analysis")]
+#[command(
+    name = "helixview-cli",
+    version,
+    about = "Headless bioinformatics analysis"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Cmd,
@@ -12,14 +16,9 @@ struct Cli {
 #[derive(Subcommand)]
 enum Cmd {
     /// Convert an alignment between formats (detected by file extension).
-    Convert {
-        input:  PathBuf,
-        output: PathBuf,
-    },
+    Convert { input: PathBuf, output: PathBuf },
     /// Print alignment statistics: sequence count, column count, mean pairwise identity.
-    Stats {
-        input: PathBuf,
-    },
+    Stats { input: PathBuf },
     /// Output per-column Shannon entropy as two-column TSV (col, entropy).
     Entropy {
         input: PathBuf,
@@ -57,19 +56,23 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
         Cmd::Convert { input, output } => cmd_convert(&input, &output),
-        Cmd::Stats   { input }        => cmd_stats(&input),
+        Cmd::Stats { input } => cmd_stats(&input),
         Cmd::Entropy { input, min_entropy } => cmd_entropy(&input, min_entropy),
-        Cmd::Consensus { input, method }    => cmd_consensus(&input, &method),
-        Cmd::Mi { input, top, min_cov }     => cmd_mi(&input, top, min_cov),
-        Cmd::Identity { input, percent }    => cmd_identity(&input, percent),
+        Cmd::Consensus { input, method } => cmd_consensus(&input, &method),
+        Cmd::Mi {
+            input,
+            top,
+            min_cov,
+        } => cmd_mi(&input, top, min_cov),
+        Cmd::Identity { input, percent } => cmd_identity(&input, percent),
     }
 }
 
 // ── convert ───────────────────────────────────────────────────────────────────
 
 fn cmd_convert(input: &PathBuf, output: &PathBuf) -> Result<()> {
-    let aln = helixview_formats::open(input)
-        .with_context(|| format!("reading {}", input.display()))?;
+    let aln =
+        helixview_formats::open(input).with_context(|| format!("reading {}", input.display()))?;
     helixview_formats::save(&aln, output)
         .with_context(|| format!("writing {}", output.display()))?;
     eprintln!(
@@ -84,26 +87,32 @@ fn cmd_convert(input: &PathBuf, output: &PathBuf) -> Result<()> {
 // ── stats ─────────────────────────────────────────────────────────────────────
 
 fn cmd_stats(input: &PathBuf) -> Result<()> {
-    let aln = helixview_formats::open(input)
-        .with_context(|| format!("reading {}", input.display()))?;
+    let aln =
+        helixview_formats::open(input).with_context(|| format!("reading {}", input.display()))?;
 
     let n_seqs = aln.seq_count();
     let n_cols = aln.col_count();
 
     // Mean pairwise identity over all upper-triangle pairs.
     let mat = helixview_analysis::identity_matrix(&aln);
-    let (sum, count) = mat.iter().enumerate()
+    let (sum, count) = mat
+        .iter()
+        .enumerate()
         .flat_map(|(i, row)| row.iter().enumerate().map(move |(j, &v)| (i, j, v)))
         .filter(|(i, j, _)| i < j)
         .fold((0.0f64, 0usize), |(s, c), (_, _, v)| (s + v, c + 1));
     let mean_id = if count > 0 { sum / count as f64 } else { 1.0 };
 
     // Count gap-only columns.
-    let gap_cols = (0..n_cols).filter(|&c| {
-        aln.sequences.iter().all(|s| {
-            s.residues.get(c).map_or(true, |&b| matches!(b, b'-' | b'.' | b'~'))
+    let gap_cols = (0..n_cols)
+        .filter(|&c| {
+            aln.sequences.iter().all(|s| {
+                s.residues
+                    .get(c)
+                    .map_or(true, |&b| matches!(b, b'-' | b'.' | b'~'))
+            })
         })
-    }).count();
+        .count();
 
     println!("File:          {}", input.display());
     println!("Sequences:     {}", n_seqs);
@@ -116,8 +125,8 @@ fn cmd_stats(input: &PathBuf) -> Result<()> {
 // ── entropy ───────────────────────────────────────────────────────────────────
 
 fn cmd_entropy(input: &PathBuf, min_entropy: f64) -> Result<()> {
-    let aln = helixview_formats::open(input)
-        .with_context(|| format!("reading {}", input.display()))?;
+    let aln =
+        helixview_formats::open(input).with_context(|| format!("reading {}", input.display()))?;
 
     let entropies = helixview_analysis::column_entropy(&aln);
     println!("col\tentropy");
@@ -134,17 +143,23 @@ fn cmd_entropy(input: &PathBuf, min_entropy: f64) -> Result<()> {
 fn cmd_consensus(input: &PathBuf, method: &str) -> Result<()> {
     use helixview_analysis::ConsensusMethod;
 
-    let aln = helixview_formats::open(input)
-        .with_context(|| format!("reading {}", input.display()))?;
+    let aln =
+        helixview_formats::open(input).with_context(|| format!("reading {}", input.display()))?;
 
     let m = match method {
-        "iupac"    => ConsensusMethod::Iupac { threshold: 0.25 },
+        "iupac" => ConsensusMethod::Iupac { threshold: 0.25 },
         "plurality" => ConsensusMethod::Plurality,
-        other      => anyhow::bail!("Unknown consensus method '{}' (use plurality or iupac)", other),
+        other => anyhow::bail!(
+            "Unknown consensus method '{}' (use plurality or iupac)",
+            other
+        ),
     };
 
     let cons = helixview_analysis::consensus(&aln, m);
-    let name = input.file_stem().and_then(|s| s.to_str()).unwrap_or("consensus");
+    let name = input
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("consensus");
     println!(">{}_{}", name, method);
     // Wrap at 80 characters.
     for chunk in cons.chunks(80) {
@@ -156,17 +171,27 @@ fn cmd_consensus(input: &PathBuf, method: &str) -> Result<()> {
 // ── mi ────────────────────────────────────────────────────────────────────────
 
 fn cmd_mi(input: &PathBuf, top: usize, min_cov: f64) -> Result<()> {
-    let aln = helixview_formats::open(input)
-        .with_context(|| format!("reading {}", input.display()))?;
+    let aln =
+        helixview_formats::open(input).with_context(|| format!("reading {}", input.display()))?;
 
-    eprintln!("Running mutual information on {} sequences × {} columns…", aln.seq_count(), aln.col_count());
+    eprintln!(
+        "Running mutual information on {} sequences × {} columns…",
+        aln.seq_count(),
+        aln.col_count()
+    );
     // If min_cov filtering is active we can't know how many pairs will pass,
     // so request everything; otherwise requesting top*4 gives enough headroom.
-    let fetch_n = if min_cov > 0.0 || top == 0 { usize::MAX } else { top * 4 };
+    let fetch_n = if min_cov > 0.0 || top == 0 {
+        usize::MAX
+    } else {
+        top * 4
+    };
     let result = helixview_analysis::mutual_information(&aln, 5, fetch_n);
 
     println!("col_a\tcol_b\tmi\twc_types\twc_frac\tcov_score");
-    let pairs = result.top_covarying.iter()
+    let pairs = result
+        .top_covarying
+        .iter()
         .filter(|p| p.cov_score >= min_cov);
     let pairs: Box<dyn Iterator<Item = _>> = if top == 0 {
         Box::new(pairs)
@@ -176,7 +201,12 @@ fn cmd_mi(input: &PathBuf, top: usize, min_cov: f64) -> Result<()> {
     for p in pairs {
         println!(
             "{}\t{}\t{:.6}\t{}\t{:.4}\t{:.4}",
-            p.col_a + 1, p.col_b + 1, p.mi, p.wc_types, p.wc_frac, p.cov_score
+            p.col_a + 1,
+            p.col_b + 1,
+            p.mi,
+            p.wc_types,
+            p.wc_frac,
+            p.cov_score
         );
     }
     Ok(())
@@ -185,15 +215,17 @@ fn cmd_mi(input: &PathBuf, top: usize, min_cov: f64) -> Result<()> {
 // ── identity ─────────────────────────────────────────────────────────────────
 
 fn cmd_identity(input: &PathBuf, percent: bool) -> Result<()> {
-    let aln = helixview_formats::open(input)
-        .with_context(|| format!("reading {}", input.display()))?;
+    let aln =
+        helixview_formats::open(input).with_context(|| format!("reading {}", input.display()))?;
 
     let mat = helixview_analysis::identity_matrix(&aln);
 
     // Header row: sequence names.
     let names: Vec<&str> = aln.sequences.iter().map(|s| s.name.as_str()).collect();
     print!("seq");
-    for n in &names { print!("\t{}", n); }
+    for n in &names {
+        print!("\t{}", n);
+    }
     println!();
 
     for (i, row) in mat.iter().enumerate() {

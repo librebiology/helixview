@@ -1,10 +1,10 @@
 //! Pairwise alignment result view.
 
-use iced::{
-    Background, Border, Element, Font, Length,
-    widget::{button, column, container, row, scrollable, text},
-};
 use helixview_analysis::PairwiseResult;
+use iced::{
+    widget::{button, column, container, row, scrollable, text},
+    Background, Border, Element, Font, Length,
+};
 
 use crate::app::Message;
 use crate::theme::palette;
@@ -152,12 +152,9 @@ pub fn pairwise_view<'a>(result: &'a PairwiseResult) -> Element<'a, Message> {
         ]
         .spacing(0);
 
-        let block = container(
-            column![line_a, conservation_line, line_b]
-                .spacing(1),
-        )
-        .padding([4, 10])
-        .width(Length::Fill);
+        let block = container(column![line_a, conservation_line, line_b].spacing(1))
+            .padding([4, 10])
+            .width(Length::Fill);
 
         blocks.push(block.into());
     }

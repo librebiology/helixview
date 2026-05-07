@@ -5,8 +5,8 @@
 //! Protein sequences are chunked into lines of 60 amino acids with position numbers.
 
 use iced::{
-    Background, Border, Element, Font, Length,
     widget::{button, column, container, row, scrollable, text},
+    Background, Border, Element, Font, Length,
 };
 
 use crate::app::Message;
@@ -55,29 +55,37 @@ pub fn sixframe_view<'a>(
 
     for (frame_label, protein) in frames.iter() {
         let is_forward = *frame_label > 0;
-        let label_color = if is_forward { palette::ACCENT } else { palette::TEXT_DIM };
+        let label_color = if is_forward {
+            palette::ACCENT
+        } else {
+            palette::TEXT_DIM
+        };
 
         let aa_count = protein.iter().filter(|&&b| b != b'*').count();
         let stop_count = protein.iter().filter(|&&b| b == b'*').count();
 
         // Frame header row
         let frame_header = container(
-            row![
-                text(format!(
-                    "Frame {:+2}   {} aa   {} stop codon{}",
-                    frame_label, aa_count, stop_count,
-                    if stop_count == 1 { "" } else { "s" },
-                ))
-                .size(12)
-                .color(label_color)
-                .font(Font::MONOSPACE),
-            ]
+            row![text(format!(
+                "Frame {:+2}   {} aa   {} stop codon{}",
+                frame_label,
+                aa_count,
+                stop_count,
+                if stop_count == 1 { "" } else { "s" },
+            ))
+            .size(12)
+            .color(label_color)
+            .font(Font::MONOSPACE),]
             .padding([3, 10]),
         )
         .width(Length::Fill)
         .style(|_| container::Style {
             background: Some(Background::Color(palette::BG_PANEL)),
-            border: Border { color: palette::BORDER, width: 1.0, radius: 0.0.into() },
+            border: Border {
+                color: palette::BORDER,
+                width: 1.0,
+                radius: 0.0.into(),
+            },
             ..Default::default()
         });
 
@@ -119,7 +127,10 @@ pub fn sixframe_view<'a>(
         );
     }
 
-    let body_col = column(body_rows).width(Length::Fill).spacing(0).padding([6, 0]);
+    let body_col = column(body_rows)
+        .width(Length::Fill)
+        .spacing(0)
+        .padding([6, 0]);
     let body = scrollable(body_col)
         .width(Length::Fill)
         .height(Length::Fill);

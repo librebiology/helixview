@@ -17,7 +17,8 @@ pub enum Format {
 /// Detect the file format from the file extension, falling back to
 /// content sniffing.
 pub fn detect_format(data: &[u8], path: &Path) -> Format {
-    let ext = path.extension()
+    let ext = path
+        .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("")
         .to_lowercase();
@@ -25,7 +26,7 @@ pub fn detect_format(data: &[u8], path: &Path) -> Format {
     match ext.as_str() {
         "fasta" | "fa" | "fna" | "faa" | "ffn" | "frn" => return Format::Fasta,
         "gb" | "gbk" | "genbank" => return Format::GenBank,
-        "bio" => return Format::GenBank,  // BioEdit project files use GenBank-like format
+        "bio" => return Format::GenBank, // BioEdit project files use GenBank-like format
         "aln" => return Format::Clustal,
         "pir" | "nbrf" => return Format::Nbrf,
         "phy" | "phylip" => return Format::Phylip,
@@ -37,13 +38,19 @@ pub fn detect_format(data: &[u8], path: &Path) -> Format {
     }
 
     // Content sniffing: look at the first non-whitespace byte/line.
-    let trimmed = data.iter().position(|&b| !b.is_ascii_whitespace())
+    let trimmed = data
+        .iter()
+        .position(|&b| !b.is_ascii_whitespace())
         .map(|i| &data[i..])
         .unwrap_or(data);
 
     // Stockholm: starts with "# STOCKHOLM"
     {
-        let upper_start: Vec<u8> = trimmed.iter().take(11).map(|b| b.to_ascii_uppercase()).collect();
+        let upper_start: Vec<u8> = trimmed
+            .iter()
+            .take(11)
+            .map(|b| b.to_ascii_uppercase())
+            .collect();
         if upper_start == b"# STOCKHOLM" {
             return Format::Stockholm;
         }
@@ -51,7 +58,11 @@ pub fn detect_format(data: &[u8], path: &Path) -> Format {
 
     // NEXUS: starts with #NEXUS (case-insensitive)
     {
-        let upper_start: Vec<u8> = trimmed.iter().take(6).map(|b| b.to_ascii_uppercase()).collect();
+        let upper_start: Vec<u8> = trimmed
+            .iter()
+            .take(6)
+            .map(|b| b.to_ascii_uppercase())
+            .collect();
         if upper_start == b"#NEXUS" {
             return Format::Nexus;
         }
@@ -59,16 +70,26 @@ pub fn detect_format(data: &[u8], path: &Path) -> Format {
 
     // Phylip: first line is exactly two integers separated by whitespace
     {
-        let first_line_end = trimmed.iter().position(|&b| b == b'\n').unwrap_or(trimmed.len());
+        let first_line_end = trimmed
+            .iter()
+            .position(|&b| b == b'\n')
+            .unwrap_or(trimmed.len());
         let first_line = std::str::from_utf8(&trimmed[..first_line_end]).unwrap_or("");
         let parts: Vec<&str> = first_line.split_whitespace().collect();
-        if parts.len() == 2 && parts[0].parse::<usize>().is_ok() && parts[1].parse::<usize>().is_ok() {
+        if parts.len() == 2
+            && parts[0].parse::<usize>().is_ok()
+            && parts[1].parse::<usize>().is_ok()
+        {
             return Format::Phylip;
         }
     }
 
     // ClustalW content sniffing
-    let upper_start: Vec<u8> = trimmed.iter().take(7).map(|b| b.to_ascii_uppercase()).collect();
+    let upper_start: Vec<u8> = trimmed
+        .iter()
+        .take(7)
+        .map(|b| b.to_ascii_uppercase())
+        .collect();
     if upper_start.starts_with(b"CLUSTAL") {
         return Format::Clustal;
     }
@@ -98,7 +119,10 @@ pub fn detect_format(data: &[u8], path: &Path) -> Format {
     // FASTA also starts with '>' but does not have ';' on the header line
     if trimmed.starts_with(b">") {
         // Check if the first line contains a semicolon (PIR type prefix pattern)
-        let first_line_end = trimmed.iter().position(|&b| b == b'\n').unwrap_or(trimmed.len());
+        let first_line_end = trimmed
+            .iter()
+            .position(|&b| b == b'\n')
+            .unwrap_or(trimmed.len());
         let first_line = &trimmed[..first_line_end];
         if first_line.contains(&b';') {
             return Format::Nbrf;

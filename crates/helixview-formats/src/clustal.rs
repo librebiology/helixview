@@ -1,14 +1,14 @@
+use crate::{FormatError, Result};
 use helixview_core::{
     alignment::Alignment,
     sequence::{Sequence, SequenceType},
 };
-use crate::{FormatError, Result};
 use std::io::Write;
 use std::path::Path;
 
 pub fn parse_bytes(data: &[u8], name: &str) -> Result<Alignment> {
-    let text = std::str::from_utf8(data)
-        .map_err(|e| FormatError::Parse(format!("Invalid UTF-8: {e}")))?;
+    let text =
+        std::str::from_utf8(data).map_err(|e| FormatError::Parse(format!("Invalid UTF-8: {e}")))?;
     parse_str(text, name)
 }
 
@@ -17,7 +17,9 @@ pub fn parse_str(text: &str, name: &str) -> Result<Alignment> {
 
     let header = lines.next().unwrap_or("");
     if !header.to_ascii_uppercase().starts_with("CLUSTAL") {
-        return Err(FormatError::Parse("Not a ClustalW file: missing CLUSTAL header".into()));
+        return Err(FormatError::Parse(
+            "Not a ClustalW file: missing CLUSTAL header".into(),
+        ));
     }
 
     // order of first appearance
@@ -58,7 +60,9 @@ pub fn parse_str(text: &str, name: &str) -> Result<Alignment> {
     }
 
     if order.is_empty() {
-        return Err(FormatError::Parse("No sequences found in Clustal data".into()));
+        return Err(FormatError::Parse(
+            "No sequences found in Clustal data".into(),
+        ));
     }
 
     let mut aln = Alignment::new(name);
@@ -74,7 +78,8 @@ pub fn parse_str(text: &str, name: &str) -> Result<Alignment> {
 }
 
 fn guess_type(residues: &[u8]) -> SequenceType {
-    let non_gap: Vec<u8> = residues.iter()
+    let non_gap: Vec<u8> = residues
+        .iter()
         .copied()
         .filter(|&b| !matches!(b, b'-' | b'~' | b'.' | b'*'))
         .collect();
@@ -84,9 +89,9 @@ fn guess_type(residues: &[u8]) -> SequenceType {
     }
 
     let nuc_set: &[u8] = b"ACGTURYN";
-    let is_protein = non_gap.iter().any(|&b| {
-        !nuc_set.contains(&b.to_ascii_uppercase())
-    });
+    let is_protein = non_gap
+        .iter()
+        .any(|&b| !nuc_set.contains(&b.to_ascii_uppercase()));
 
     if is_protein {
         return SequenceType::Protein;
@@ -119,7 +124,12 @@ pub fn write_writer(aln: &Alignment, w: &mut dyn Write) -> Result<()> {
         return Ok(());
     }
 
-    let max_len = aln.sequences.iter().map(|s| s.residues.len()).max().unwrap_or(0);
+    let max_len = aln
+        .sequences
+        .iter()
+        .map(|s| s.residues.len())
+        .max()
+        .unwrap_or(0);
     let block_size = 60usize;
     let mut offset = 0;
     while offset < max_len {
@@ -162,13 +172,16 @@ mod tests {
 
     #[test]
     fn roundtrip_preserves_residues() {
-        let aln  = super::parse_str(SAMPLE, "test").unwrap();
-        let out  = super::to_string(&aln).unwrap();
+        let aln = super::parse_str(SAMPLE, "test").unwrap();
+        let out = super::to_string(&aln).unwrap();
         let aln2 = super::parse_str(&out, "test2").unwrap();
         assert_eq!(aln.seq_count(), aln2.seq_count());
         for (a, b) in aln.sequences.iter().zip(aln2.sequences.iter()) {
-            assert_eq!(a.residues, b.residues,
-                "residues differ for '{}' after round-trip", a.name);
+            assert_eq!(
+                a.residues, b.residues,
+                "residues differ for '{}' after round-trip",
+                a.name
+            );
         }
     }
 

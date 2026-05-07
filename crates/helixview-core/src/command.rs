@@ -28,7 +28,9 @@ impl Command for InsertGaps {
     fn undo(&self, aln: &mut Alignment) {
         aln.delete_gaps(&self.seq_indices, self.column, self.count);
     }
-    fn description(&self) -> &str { "Insert gaps" }
+    fn description(&self) -> &str {
+        "Insert gaps"
+    }
 }
 
 /// Delete gaps at `column`.
@@ -38,7 +40,7 @@ pub struct DeleteGaps {
     pub column: usize,
     pub count: usize,
     /// Saved gap bytes so we can restore them on undo.
-    pub saved: Vec<(usize, Vec<u8>)>,  // (seq_idx, bytes_removed)
+    pub saved: Vec<(usize, Vec<u8>)>, // (seq_idx, bytes_removed)
 }
 
 impl Command for DeleteGaps {
@@ -56,7 +58,9 @@ impl Command for DeleteGaps {
             }
         }
     }
-    fn description(&self) -> &str { "Delete gaps" }
+    fn description(&self) -> &str {
+        "Delete gaps"
+    }
 }
 
 /// Set the residues of a single sequence over a range.
@@ -87,7 +91,9 @@ impl Command for SetResidues {
             }
         }
     }
-    fn description(&self) -> &str { "Edit residues" }
+    fn description(&self) -> &str {
+        "Edit residues"
+    }
 }
 
 /// Reorder sequences according to a new index mapping.
@@ -105,14 +111,14 @@ impl Command for ReorderSequences {
     fn undo(&self, aln: &mut Alignment) {
         apply_order(aln, &self.old_order);
     }
-    fn description(&self) -> &str { "Reorder sequences" }
+    fn description(&self) -> &str {
+        "Reorder sequences"
+    }
 }
 
 fn apply_order(aln: &mut Alignment, order: &[usize]) {
     let old = std::mem::take(&mut aln.sequences);
-    aln.sequences = order.iter()
-        .filter_map(|&i| old.get(i).cloned())
-        .collect();
+    aln.sequences = order.iter().filter_map(|&i| old.get(i).cloned()).collect();
 }
 
 /// Add sequences at a given position.
@@ -135,7 +141,9 @@ impl Command for AddSequences {
             }
         }
     }
-    fn description(&self) -> &str { "Add sequences" }
+    fn description(&self) -> &str {
+        "Add sequences"
+    }
 }
 
 /// Remove sequences by their (stable) indices.
@@ -161,23 +169,25 @@ impl Command for RemoveSequences {
             aln.sequences.insert(pos, seq.clone());
         }
     }
-    fn description(&self) -> &str { "Remove sequences" }
+    fn description(&self) -> &str {
+        "Remove sequences"
+    }
 }
 
 // ── History ──────────────────────────────────────────────────────────────────
 
 /// Undo/redo history for one alignment document.
 pub struct History {
-    past:      VecDeque<Box<dyn Command>>,
-    future:    VecDeque<Box<dyn Command>>,
+    past: VecDeque<Box<dyn Command>>,
+    future: VecDeque<Box<dyn Command>>,
     max_depth: usize,
 }
 
 impl History {
     pub fn new(max_depth: usize) -> Self {
         Self {
-            past:      VecDeque::new(),
-            future:    VecDeque::new(),
+            past: VecDeque::new(),
+            future: VecDeque::new(),
             max_depth,
         }
     }
@@ -193,8 +203,12 @@ impl History {
         }
     }
 
-    pub fn can_undo(&self) -> bool { !self.past.is_empty() }
-    pub fn can_redo(&self) -> bool { !self.future.is_empty() }
+    pub fn can_undo(&self) -> bool {
+        !self.past.is_empty()
+    }
+    pub fn can_redo(&self) -> bool {
+        !self.future.is_empty()
+    }
 
     pub fn undo(&mut self, aln: &mut Alignment) {
         if let Some(cmd) = self.past.pop_back() {

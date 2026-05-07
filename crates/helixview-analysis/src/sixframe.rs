@@ -17,31 +17,31 @@ pub struct Orf {
 /// Stop codons return `b'*'`. Gaps or ambiguous bases return `b'X'`.
 pub fn translate_codon(codon: &[u8; 3]) -> u8 {
     match codon {
-        b"TTT" | b"TTC"             => b'F',
-        b"TTA" | b"TTG"             => b'L',
+        b"TTT" | b"TTC" => b'F',
+        b"TTA" | b"TTG" => b'L',
         b"CTT" | b"CTC" | b"CTA" | b"CTG" => b'L',
-        b"ATT" | b"ATC" | b"ATA"   => b'I',
-        b"ATG"                      => b'M',
+        b"ATT" | b"ATC" | b"ATA" => b'I',
+        b"ATG" => b'M',
         b"GTT" | b"GTC" | b"GTA" | b"GTG" => b'V',
         b"TCT" | b"TCC" | b"TCA" | b"TCG" => b'S',
         b"CCT" | b"CCC" | b"CCA" | b"CCG" => b'P',
         b"ACT" | b"ACC" | b"ACA" | b"ACG" => b'T',
         b"GCT" | b"GCC" | b"GCA" | b"GCG" => b'A',
-        b"TAT" | b"TAC"             => b'Y',
-        b"TAA" | b"TAG" | b"TGA"   => b'*',
-        b"CAT" | b"CAC"             => b'H',
-        b"CAA" | b"CAG"             => b'Q',
-        b"AAT" | b"AAC"             => b'N',
-        b"AAA" | b"AAG"             => b'K',
-        b"GAT" | b"GAC"             => b'D',
-        b"GAA" | b"GAG"             => b'E',
-        b"TGT" | b"TGC"             => b'C',
-        b"TGG"                      => b'W',
+        b"TAT" | b"TAC" => b'Y',
+        b"TAA" | b"TAG" | b"TGA" => b'*',
+        b"CAT" | b"CAC" => b'H',
+        b"CAA" | b"CAG" => b'Q',
+        b"AAT" | b"AAC" => b'N',
+        b"AAA" | b"AAG" => b'K',
+        b"GAT" | b"GAC" => b'D',
+        b"GAA" | b"GAG" => b'E',
+        b"TGT" | b"TGC" => b'C',
+        b"TGG" => b'W',
         b"CGT" | b"CGC" | b"CGA" | b"CGG" => b'R',
-        b"AGA" | b"AGG"             => b'R',
-        b"AGT" | b"AGC"             => b'S',
+        b"AGA" | b"AGG" => b'R',
+        b"AGT" | b"AGC" => b'S',
         b"GGT" | b"GGC" | b"GGA" | b"GGG" => b'G',
-        _                           => b'X',
+        _ => b'X',
     }
 }
 
@@ -64,7 +64,8 @@ fn complement(b: u8) -> u8 {
 
 /// Strip gap characters (`b'-'`, `b'~'`, `b'.'`) from a sequence.
 fn strip_gaps(seq: &[u8]) -> Vec<u8> {
-    seq.iter().copied()
+    seq.iter()
+        .copied()
         .filter(|&b| !matches!(b, b'-' | b'~' | b'.'))
         .collect()
 }
@@ -150,12 +151,12 @@ pub fn find_orfs(seq: &[u8], min_aa_len: usize) -> Vec<Orf> {
                     // Include the stop codon in the end position.
                     let nt_start_in_strand = offset + start_aa * 3;
                     let stop_included = if j < protein.len() { 3 } else { 0 };
-                    let nt_end_in_strand   = offset + j * 3 + stop_included;
+                    let nt_end_in_strand = offset + j * 3 + stop_included;
 
                     let (fwd_start, fwd_end) = if is_rc {
                         // Map RC positions back to forward strand.
                         let rc_len = strand_seq.len();
-                        let fwd_end   = rc_len - nt_start_in_strand;
+                        let fwd_end = rc_len - nt_start_in_strand;
                         let fwd_start = rc_len - nt_end_in_strand;
                         (fwd_start, fwd_end)
                     } else {
@@ -164,7 +165,7 @@ pub fn find_orfs(seq: &[u8], min_aa_len: usize) -> Vec<Orf> {
 
                     // Clamp to actual sequence length.
                     let fwd_start = fwd_start.min(len);
-                    let fwd_end   = fwd_end.min(len);
+                    let fwd_end = fwd_end.min(len);
 
                     let frame_label: i8 = if frame < 3 {
                         (frame as i8) + 1
@@ -218,8 +219,11 @@ mod tests {
     fn translate_frame_strips_gaps() {
         // ATG-AAA-TAA with gaps should give same result as without
         let seq_with_gaps = b"ATG-AAA-TAA";
-        let seq_clean     = b"ATGAAATAA";
-        assert_eq!(translate_frame(seq_with_gaps, 0), translate_frame(seq_clean, 0));
+        let seq_clean = b"ATGAAATAA";
+        assert_eq!(
+            translate_frame(seq_with_gaps, 0),
+            translate_frame(seq_clean, 0)
+        );
     }
 
     #[test]
@@ -228,7 +232,10 @@ mod tests {
         let seq = b"ATGAAATAA";
         let orfs = find_orfs(seq, 1);
         assert!(!orfs.is_empty(), "should find at least one ORF");
-        let orf = orfs.iter().find(|o| o.frame == 1).expect("frame +1 ORF missing");
+        let orf = orfs
+            .iter()
+            .find(|o| o.frame == 1)
+            .expect("frame +1 ORF missing");
         assert_eq!(orf.protein, b"MK");
         assert_eq!(orf.start, 0);
         assert_eq!(orf.end, 9);

@@ -4,13 +4,13 @@ use helixview_core::sequence::Sequence;
 /// Returns 0.0 for unknown or gap characters.
 pub fn kd_scale(aa: u8) -> f64 {
     match aa.to_ascii_uppercase() {
-        b'I' =>  4.5,
-        b'V' =>  4.2,
-        b'L' =>  3.8,
-        b'F' =>  2.8,
-        b'C' =>  2.5,
-        b'M' =>  1.9,
-        b'A' =>  1.8,
+        b'I' => 4.5,
+        b'V' => 4.2,
+        b'L' => 3.8,
+        b'F' => 2.8,
+        b'C' => 2.5,
+        b'M' => 1.9,
+        b'A' => 1.8,
         b'G' => -0.4,
         b'T' => -0.7,
         b'W' => -0.9,
@@ -24,7 +24,7 @@ pub fn kd_scale(aa: u8) -> f64 {
         b'N' => -3.5,
         b'K' => -3.9,
         b'R' => -4.5,
-        _    =>  0.0,
+        _ => 0.0,
     }
 }
 
@@ -33,12 +33,17 @@ pub fn kd_scale(aa: u8) -> f64 {
 /// Output length = max(0, seq_len - window + 1).
 /// Gaps are skipped (only true residues are used).
 pub fn kyte_doolittle_profile(seq: &Sequence, window: usize) -> Vec<f64> {
-    let residues: Vec<u8> = seq.residues.iter()
+    let residues: Vec<u8> = seq
+        .residues
+        .iter()
         .copied()
         .filter(|&b| !matches!(b, b'-' | b'~' | b'.'))
         .collect();
-    if window == 0 || residues.len() < window { return vec![]; }
-    residues.windows(window)
+    if window == 0 || residues.len() < window {
+        return vec![];
+    }
+    residues
+        .windows(window)
         .map(|w| w.iter().map(|&b| kd_scale(b)).sum::<f64>() / window as f64)
         .collect()
 }

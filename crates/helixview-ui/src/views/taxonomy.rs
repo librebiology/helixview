@@ -1,13 +1,13 @@
 //! Taxonomy table: shows NCBI lineage parsed from GenBank SOURCE/ORGANISM blocks.
 
-use std::sync::Arc;
-use iced::{
-    widget::{button, column, container, row, scrollable, text, horizontal_space},
-    Alignment, Color, Element, Length,
-};
-use helixview_core::Alignment as SeqAlignment;
 use crate::app::Message;
 use crate::theme::palette;
+use helixview_core::Alignment as SeqAlignment;
+use iced::{
+    widget::{button, column, container, horizontal_space, row, scrollable, text},
+    Alignment, Color, Element, Length,
+};
+use std::sync::Arc;
 
 // ── Lineage parsing ───────────────────────────────────────────────────────────
 
@@ -25,7 +25,9 @@ fn parse_source(source: &str) -> (String, Vec<String>) {
             organism = rest.trim().to_string();
             in_lineage = true;
         } else if in_lineage {
-            if !lineage_buf.is_empty() { lineage_buf.push(' '); }
+            if !lineage_buf.is_empty() {
+                lineage_buf.push(' ');
+            }
             lineage_buf.push_str(line.trim());
         }
     }
@@ -48,19 +50,32 @@ fn parse_source(source: &str) -> (String, Vec<String>) {
 
 /// Per-sequence parsed taxonomy data.
 struct TaxRow {
-    seq_idx:  usize,
+    seq_idx: usize,
     seq_name: String,
     organism: String,
-    ranks:    Vec<String>,
+    ranks: Vec<String>,
 }
 
 fn build_rows(aln: &SeqAlignment) -> (Vec<TaxRow>, usize) {
-    let rows: Vec<TaxRow> = aln.sequences.iter().enumerate().map(|(i, seq)| {
-        let (organism, ranks) = seq.genbank.source.as_deref()
-            .map(parse_source)
-            .unwrap_or_default();
-        TaxRow { seq_idx: i, seq_name: seq.name.clone(), organism, ranks }
-    }).collect();
+    let rows: Vec<TaxRow> = aln
+        .sequences
+        .iter()
+        .enumerate()
+        .map(|(i, seq)| {
+            let (organism, ranks) = seq
+                .genbank
+                .source
+                .as_deref()
+                .map(parse_source)
+                .unwrap_or_default();
+            TaxRow {
+                seq_idx: i,
+                seq_name: seq.name.clone(),
+                organism,
+                ranks,
+            }
+        })
+        .collect();
 
     let max_ranks = rows.iter().map(|r| r.ranks.len()).max().unwrap_or(0);
     (rows, max_ranks)
@@ -75,14 +90,17 @@ const RANK_LABELS: &[&str] = &[
 ];
 
 fn rank_label(i: usize) -> String {
-    RANK_LABELS.get(i).map(|s| s.to_string()).unwrap_or_else(|| format!("Level {}", i + 1))
+    RANK_LABELS
+        .get(i)
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| format!("Level {}", i + 1))
 }
 
 // ── View ──────────────────────────────────────────────────────────────────────
 
-const COL_IDX:  f32 = 36.0;
+const COL_IDX: f32 = 36.0;
 const COL_NAME: f32 = 180.0;
-const COL_ORG:  f32 = 200.0;
+const COL_ORG: f32 = 200.0;
 const COL_RANK: f32 = 130.0;
 
 fn hdr_cell<'a>(label: impl Into<String>, width: f32) -> Element<'a, Message> {
@@ -96,7 +114,11 @@ fn hdr_cell<'a>(label: impl Into<String>, width: f32) -> Element<'a, Message> {
         .into()
 }
 
-fn sort_hdr_cell<'a>(label: impl Into<String>, width: f32, rank_idx: usize) -> Element<'a, Message> {
+fn sort_hdr_cell<'a>(
+    label: impl Into<String>,
+    width: f32,
+    rank_idx: usize,
+) -> Element<'a, Message> {
     button(text(label.into()).size(11))
         .width(Length::Fixed(width))
         .padding([3, 6])
@@ -142,10 +164,11 @@ pub fn taxonomy_view<'a>(aln: &Arc<SeqAlignment>) -> Element<'a, Message> {
 
     // ── Header row ────────────────────────────────────────────────────────────
     let mut hdr = row![
-        hdr_cell("#",        COL_IDX),
+        hdr_cell("#", COL_IDX),
         hdr_cell("Sequence", COL_NAME),
         hdr_cell("Organism", COL_ORG),
-    ].spacing(1);
+    ]
+    .spacing(1);
     for i in 0..num_rank_cols {
         hdr = hdr.push(sort_hdr_cell(rank_label(i), COL_RANK, i));
     }
@@ -159,7 +182,8 @@ pub fn taxonomy_view<'a>(aln: &Arc<SeqAlignment>) -> Element<'a, Message> {
             data_cell(format!("{}", tr.seq_idx + 1), COL_IDX, shade),
             data_cell(tr.seq_name.clone(), COL_NAME, shade),
             data_cell(tr.organism.clone(), COL_ORG, shade),
-        ].spacing(1);
+        ]
+        .spacing(1);
         for i in 0..num_rank_cols {
             let val = tr.ranks.get(i).cloned().unwrap_or_default();
             r = r.push(data_cell(val, COL_RANK, shade));
@@ -168,12 +192,12 @@ pub fn taxonomy_view<'a>(aln: &Arc<SeqAlignment>) -> Element<'a, Message> {
     }
 
     let content: Element<'a, Message> = scrollable(
-        scrollable(
-            column![hdr, body].spacing(1).padding(8)
-        )
-        .direction(scrollable::Direction::Vertical(scrollable::Scrollbar::new()))
+        scrollable(column![hdr, body].spacing(1).padding(8))
+            .direction(scrollable::Direction::Vertical(scrollable::Scrollbar::new())),
     )
-    .direction(scrollable::Direction::Horizontal(scrollable::Scrollbar::new()))
+    .direction(scrollable::Direction::Horizontal(
+        scrollable::Scrollbar::new(),
+    ))
     .into();
 
     column![toolbar, content]

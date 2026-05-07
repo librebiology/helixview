@@ -1,42 +1,44 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use iced::{Element, Task, Theme};
-use iced::keyboard::{self, Key, key::Named, Modifiers};
-use iced::widget::{text_editor, text_input};
 use helixview_core::Alignment as SeqAlignment;
 use helixview_core::Sequence as CoreSequence;
 use helixview_core::{
-    History as EditHistory,
-    InsertGapColumn, DeleteColumn as DelColumn, MoveSequence, SetResidues,
-    InsertGapInSeq, DeleteGapInSeq,
-    EditFeature, AddFeature, DeleteFeature as DeleteFeatureCmd,
+    AddFeature, DeleteColumn as DelColumn, DeleteFeature as DeleteFeatureCmd, DeleteGapInSeq,
+    EditFeature, History as EditHistory, InsertGapColumn, InsertGapInSeq, MoveSequence,
+    SetResidues,
 };
+use iced::keyboard::{self, key::Named, Key, Modifiers};
+use iced::widget::{text_editor, text_input};
+use iced::{Element, Task, Theme};
 
+use crate::blast::{self, BlastHit};
+use crate::color_table::ColorTable;
+use crate::entrez;
+use crate::prefs::Preferences;
+use crate::views::{
+    alignment_view, col_summary_view, color_editor_view, conservation_view, dot_plot_view,
+    identity_matrix_view, seq_editor_view, welcome_view,
+};
 use helixview_analysis::PairwiseResult;
 use helixview_external::ExternalAligner;
-use crate::blast::{self, BlastHit};
-use crate::entrez;
-use crate::views::{alignment_view, welcome_view, identity_matrix_view, col_summary_view, dot_plot_view, seq_editor_view, color_editor_view, conservation_view};
-use crate::prefs::Preferences;
-use crate::color_table::ColorTable;
 
 // ── Shaded export options ─────────────────────────────────────────────────────
 
 #[derive(Debug, Clone)]
 pub struct ShadedExportOptions {
-    pub scheme:         ColorScheme,
-    pub threshold:      f32,
-    pub show_ruler:     bool,
+    pub scheme: ColorScheme,
+    pub threshold: f32,
+    pub show_ruler: bool,
     pub show_consensus: bool,
 }
 
 impl Default for ShadedExportOptions {
     fn default() -> Self {
         Self {
-            scheme:         ColorScheme::Identity,
-            threshold:      0.50,
-            show_ruler:     true,
+            scheme: ColorScheme::Identity,
+            threshold: 0.50,
+            show_ruler: true,
             show_consensus: true,
         }
     }
@@ -57,7 +59,7 @@ pub struct AccessoryApp {
 impl Default for AccessoryApp {
     fn default() -> Self {
         Self {
-            name:    "My Tool".to_string(),
+            name: "My Tool".to_string(),
             command: "my_tool {input}".to_string(),
         }
     }
@@ -81,22 +83,22 @@ pub enum BlastState {
 
 /// Saved state for a non-active tab.
 pub struct TabRecord {
-    pub document:          Option<Arc<SeqAlignment>>,
-    pub view:              ViewState,
-    pub history:           EditHistory,
-    pub show_restr_map:    bool,
-    pub protein_view_doc:  Option<Arc<SeqAlignment>>,
+    pub document: Option<Arc<SeqAlignment>>,
+    pub view: ViewState,
+    pub history: EditHistory,
+    pub show_restr_map: bool,
+    pub protein_view_doc: Option<Arc<SeqAlignment>>,
     pub protein_view_frame: usize,
 }
 
 impl TabRecord {
     fn empty() -> Self {
         Self {
-            document:           None,
-            view:               ViewState::default(),
-            history:            EditHistory::new(100),
-            show_restr_map:     false,
-            protein_view_doc:   None,
+            document: None,
+            view: ViewState::default(),
+            history: EditHistory::new(100),
+            show_restr_map: false,
+            protein_view_doc: None,
             protein_view_frame: 0,
         }
     }
@@ -287,90 +289,90 @@ impl std::fmt::Debug for HelixViewApp {
 impl Default for HelixViewApp {
     fn default() -> Self {
         Self {
-            document:        None,
-            status:          String::new(),
-            view:            ViewState::default(),
-            history:         EditHistory::new(100),
-            pairwise_result:       None,
-            orf_results:           None,
-            show_identity_matrix:  false,
-            show_col_summary:      false,
-            title_menu:            None,
-            rename_input:          String::new(),
-            show_restr_map:        false,
-            show_dot_plot:         false,
-            seq_editor_idx:        None,
-            seq_editor_content:    None,
-            color_table:           Arc::new(ColorTable::default()),
-            show_color_editor:      false,
-            color_editor_selected:  None,
-            show_conservation:      false,
+            document: None,
+            status: String::new(),
+            view: ViewState::default(),
+            history: EditHistory::new(100),
+            pairwise_result: None,
+            orf_results: None,
+            show_identity_matrix: false,
+            show_col_summary: false,
+            title_menu: None,
+            rename_input: String::new(),
+            show_restr_map: false,
+            show_dot_plot: false,
+            seq_editor_idx: None,
+            seq_editor_content: None,
+            color_table: Arc::new(ColorTable::default()),
+            show_color_editor: false,
+            color_editor_selected: None,
+            show_conservation: false,
             conservation_threshold: 0.80,
             conservation_min_width: 4,
-            six_frame_result:       None,
-            protein_view_doc:       None,
-            protein_view_frame:     0,
-            blast:                  BlastState::Idle,
-            dot_plot_seq_a:         0,
-            dot_plot_seq_b:        1,
-            dot_plot_window:       7,
-            dot_plot_min_match:    5,
-            show_composition:       false,
-            show_oligo_tm:          false,
-            tabs:                   vec![TabRecord::empty()],
-            active_tab:             0,
-            tree_data:              None,
-            tree_selected:          BTreeSet::new(),
-            trace_data:             None,
-            trace_scroll:           0.0,
-            trace_zoom:             1.0,
-            trace_quant_ch_a:       b'A',
-            trace_quant_ch_b:       b'C',
-            prefs:                  crate::prefs::load(),
-            show_prefs:             false,
-            show_help:              false,
-            show_shaded_export:     false,
-            shaded_export_opts:     ShadedExportOptions::default(),
-            show_taxonomy:          false,
-            show_plasmid:           false,
-            plasmid_seq_idx:        0,
-            plasmid_show_features:  true,
-            plasmid_show_re:        true,
-            plasmid_selected_feat:  None,
-            plasmid_edit_name:      String::new(),
-            plasmid_edit_start:     String::new(),
-            plasmid_edit_end:       String::new(),
-            plasmid_edit_color:     helixview_core::color::Color::rgb(0.10, 0.60, 0.10),
-            plasmid_edit_hex:       "#1a9919".to_string(),
-            plasmid_zoom:           1.0,
-            plasmid_pan_x:          0.0,
-            plasmid_pan_y:          0.0,
-            plasmid_re_cache:       None,
-            computing:              None,
-            identity_matrix_data:   None,
-            show_pairing_arcs:      false,
-            pairing_arc_threshold:  2.0,
-            show_hydrophobicity:    false,
-            hydro_window:           9,
-            show_text_export:       false,
-            text_export_opts:       crate::text_export::TextExportOptions::default(),
-            show_command_palette:   false,
-            palette_query:          String::new(),
-            palette_selected:       0,
-            show_mutual_info:       false,
-            mi_result:              None,
-            mi_running:             false,
-            mi_min_obs:             2,
-            mi_top_n:               100,
-            mi_stem_min_wc_types:   2,
-            mi_stem_min_wc_frac:    0.5,
-            mi_aln_ptr:             None,
-            mi_tab:                 crate::views::MiTab::TopPairs,
-            accessories:            crate::accessories::load_accessories(),
-            show_accessories:       false,
-            editing_accessory:      None,
-            acc_edit_name:          String::new(),
-            acc_edit_cmd:           String::new(),
+            six_frame_result: None,
+            protein_view_doc: None,
+            protein_view_frame: 0,
+            blast: BlastState::Idle,
+            dot_plot_seq_a: 0,
+            dot_plot_seq_b: 1,
+            dot_plot_window: 7,
+            dot_plot_min_match: 5,
+            show_composition: false,
+            show_oligo_tm: false,
+            tabs: vec![TabRecord::empty()],
+            active_tab: 0,
+            tree_data: None,
+            tree_selected: BTreeSet::new(),
+            trace_data: None,
+            trace_scroll: 0.0,
+            trace_zoom: 1.0,
+            trace_quant_ch_a: b'A',
+            trace_quant_ch_b: b'C',
+            prefs: crate::prefs::load(),
+            show_prefs: false,
+            show_help: false,
+            show_shaded_export: false,
+            shaded_export_opts: ShadedExportOptions::default(),
+            show_taxonomy: false,
+            show_plasmid: false,
+            plasmid_seq_idx: 0,
+            plasmid_show_features: true,
+            plasmid_show_re: true,
+            plasmid_selected_feat: None,
+            plasmid_edit_name: String::new(),
+            plasmid_edit_start: String::new(),
+            plasmid_edit_end: String::new(),
+            plasmid_edit_color: helixview_core::color::Color::rgb(0.10, 0.60, 0.10),
+            plasmid_edit_hex: "#1a9919".to_string(),
+            plasmid_zoom: 1.0,
+            plasmid_pan_x: 0.0,
+            plasmid_pan_y: 0.0,
+            plasmid_re_cache: None,
+            computing: None,
+            identity_matrix_data: None,
+            show_pairing_arcs: false,
+            pairing_arc_threshold: 2.0,
+            show_hydrophobicity: false,
+            hydro_window: 9,
+            show_text_export: false,
+            text_export_opts: crate::text_export::TextExportOptions::default(),
+            show_command_palette: false,
+            palette_query: String::new(),
+            palette_selected: 0,
+            show_mutual_info: false,
+            mi_result: None,
+            mi_running: false,
+            mi_min_obs: 2,
+            mi_top_n: 100,
+            mi_stem_min_wc_types: 2,
+            mi_stem_min_wc_frac: 0.5,
+            mi_aln_ptr: None,
+            mi_tab: crate::views::MiTab::TopPairs,
+            accessories: crate::accessories::load_accessories(),
+            show_accessories: false,
+            editing_accessory: None,
+            acc_edit_name: String::new(),
+            acc_edit_cmd: String::new(),
         }
     }
 }
@@ -415,26 +417,26 @@ pub enum ColorScheme {
 /// Reset when a new document is opened.
 #[derive(Debug, Clone)]
 pub struct ViewState {
-    pub scroll_col:   usize,
-    pub scroll_row:   usize,
-    pub selected:     BTreeSet<usize>,
+    pub scroll_col: usize,
+    pub scroll_row: usize,
+    pub selected: BTreeSet<usize>,
     pub color_scheme: ColorScheme,
-    pub hover_col:    Option<usize>,
-    pub hover_row:    Option<usize>,
-    pub ctrl_held:     bool,
-    pub shift_held:    bool,
-    pub last_clicked:  Option<usize>,
+    pub hover_col: Option<usize>,
+    pub hover_row: Option<usize>,
+    pub ctrl_held: bool,
+    pub shift_held: bool,
+    pub last_clicked: Option<usize>,
     pub show_analysis: bool,
     /// Zoom level (1.0 = default, range 0.4–3.0).
-    pub zoom:          f32,
+    pub zoom: f32,
     /// Whether the search bar is visible.
-    pub show_search:   bool,
+    pub show_search: bool,
     /// Current text in the search bar.
-    pub search_query:  String,
+    pub search_query: String,
     /// Whether the search bar is in residue-pattern or name mode.
-    pub search_mode:   SearchMode,
+    pub search_mode: SearchMode,
     /// Single-cell selection for residue editing (row, col).
-    pub edit_cell:     Option<(usize, usize)>,
+    pub edit_cell: Option<(usize, usize)>,
     /// Columns selected in the ruler (for bulk delete).
     pub selected_cols: BTreeSet<usize>,
     /// Whether to draw feature annotation stripes below each sequence row.
@@ -468,35 +470,35 @@ pub struct ViewState {
 impl Default for ViewState {
     fn default() -> Self {
         Self {
-            scroll_col:    0,
-            scroll_row:    0,
-            selected:      Default::default(),
-            color_scheme:  ColorScheme::default(),
-            hover_col:     None,
-            hover_row:     None,
-            ctrl_held:     false,
-            shift_held:    false,
-            last_clicked:  None,
+            scroll_col: 0,
+            scroll_row: 0,
+            selected: Default::default(),
+            color_scheme: ColorScheme::default(),
+            hover_col: None,
+            hover_row: None,
+            ctrl_held: false,
+            shift_held: false,
+            last_clicked: None,
             show_analysis: false,
-            zoom:          1.0,
-            show_search:   false,
-            search_query:  String::new(),
-            search_mode:   SearchMode::default(),
-            edit_cell:     None,
-            selected_cols:      Default::default(),
-            show_features:      true,
-            pattern_matches:    Vec::new(),
-            pattern_match_idx:  0,
-            show_fetch_bar:     false,
-            fetch_input:        String::new(),
-            show_annotate_bar:  false,
-            annotate_name:      String::new(),
-            annotate_type:      "misc_feature".to_string(),
+            zoom: 1.0,
+            show_search: false,
+            search_query: String::new(),
+            search_mode: SearchMode::default(),
+            edit_cell: None,
+            selected_cols: Default::default(),
+            show_features: true,
+            pattern_matches: Vec::new(),
+            pattern_match_idx: 0,
+            show_fetch_bar: false,
+            fetch_input: String::new(),
+            show_annotate_bar: false,
+            annotate_name: String::new(),
+            annotate_type: "misc_feature".to_string(),
             protein_view_frame: None,
-            show_blast_panel:   false,
-            blast_program:      "blastn".to_string(),
-            blast_database:     "nt".to_string(),
-            toolbar_tab:        ToolbarTab::default(),
+            show_blast_panel: false,
+            blast_program: "blastn".to_string(),
+            blast_database: "nt".to_string(),
+            toolbar_tab: ToolbarTab::default(),
         }
     }
 }
@@ -518,9 +520,16 @@ pub enum Message {
     /// User pressed "New Alignment"
     NewAlignment,
     /// Canvas grid reported a scroll delta (positive dy = scroll down).
-    GridScrolled { dx: isize, dy: isize },
+    GridScrolled {
+        dx: isize,
+        dy: isize,
+    },
     /// User clicked a sequence row in the title panel.
-    SequenceClicked { idx: usize, ctrl: bool, shift: bool },
+    SequenceClicked {
+        idx: usize,
+        ctrl: bool,
+        shift: bool,
+    },
     /// Keyboard modifier state changed.
     ModifiersChanged(Modifiers),
     /// Horizontal scrollbar slider moved.
@@ -528,11 +537,19 @@ pub enum Message {
     /// User changed the color scheme via the toolbar.
     SetColorScheme(ColorScheme),
     /// Canvas grid reported current hover position.
-    HoverPosition { col: Option<usize>, row: Option<usize> },
+    HoverPosition {
+        col: Option<usize>,
+        row: Option<usize>,
+    },
     /// Right-click on a grid column: insert gap if residue column, delete if all-gap column.
-    GridRightClick { col: usize },
+    GridRightClick {
+        col: usize,
+    },
     /// User dragged a sequence row from `from` to `to`.
-    SequenceMoved { from: usize, to: usize },
+    SequenceMoved {
+        from: usize,
+        to: usize,
+    },
     /// Undo last edit (Ctrl+Z).
     Undo,
     /// Redo last undone edit (Ctrl+Y / Ctrl+Shift+Z).
@@ -552,7 +569,10 @@ pub enum Message {
     /// Reset zoom to 1.0.
     ZoomReset,
     /// User click-selected a column range in the ruler.
-    ColumnsSelected { start: usize, end: usize },
+    ColumnsSelected {
+        start: usize,
+        end: usize,
+    },
     /// Clear column selection.
     ClearColumnSelection,
     /// Delete all selected columns (using history).
@@ -566,9 +586,13 @@ pub enum Message {
     /// Delete the gap character immediately before the cursor in all OTHER rows (Shift+Backspace in edit mode).
     DeleteGapInOthers,
     /// Space key pressed; routed to gap insertion or ignored based on edit mode.
-    SpacePressed { shift: bool },
+    SpacePressed {
+        shift: bool,
+    },
     /// Backspace key pressed; routed to gap deletion or column deletion based on edit mode.
-    BackspacePressed { shift: bool },
+    BackspacePressed {
+        shift: bool,
+    },
     /// Run ORF finder on the first selected/hovered sequence.
     RunOrfFinder,
     /// Close the ORF finder results panel.
@@ -596,7 +620,10 @@ pub enum Message {
     /// User pressed Escape to close the search bar.
     SearchClose,
     /// User clicked a residue cell (for single-cell editing).
-    CellClicked { row: usize, col: usize },
+    CellClicked {
+        row: usize,
+        col: usize,
+    },
     /// User typed a residue key while a cell is selected.
     ResidueTyped(char),
     /// Translate selected sequences (DNA→protein) in place.
@@ -618,17 +645,28 @@ pub enum Message {
     /// Jump to next/previous pattern match: +1 or -1.
     PatternMatchJump(isize),
     /// User right-clicked a sequence title label.
-    TitleRightClick { idx: usize },
+    TitleRightClick {
+        idx: usize,
+    },
     /// Close the title context menu without action.
     TitleMenuClose,
     /// Rename the sequence at `idx` to a new name.
-    RenameSequence { idx: usize, name: String },
+    RenameSequence {
+        idx: usize,
+        name: String,
+    },
     /// Toggle the lock state of the sequence at `idx`.
-    ToggleLockSequence { idx: usize },
+    ToggleLockSequence {
+        idx: usize,
+    },
     /// Duplicate the sequence at `idx` (insert a copy right after).
-    DuplicateSequence { idx: usize },
+    DuplicateSequence {
+        idx: usize,
+    },
     /// Delete the sequence at `idx`.
-    DeleteSequence { idx: usize },
+    DeleteSequence {
+        idx: usize,
+    },
     /// Update the rename text field value.
     RenameInput(String),
     /// Open the positional column summary view.
@@ -645,7 +683,12 @@ pub enum Message {
     SelectColorResidue(u8, bool),
     /// Adjust one channel of the currently selected residue color.
     /// `channel`: 0=R, 1=G, 2=B.
-    SetResidueColor { residue: u8, is_nuc: bool, channel: u8, value: f32 },
+    SetResidueColor {
+        residue: u8,
+        is_nuc: bool,
+        channel: u8,
+        value: f32,
+    },
     /// Reset the color table to built-in defaults.
     ResetColorTable,
     /// Open the conservation region search view.
@@ -663,7 +706,9 @@ pub enum Message {
     /// Alignment result returned from external aligner.
     ExternalAlignDone(Result<SeqAlignment, String>),
     /// Open the raw-sequence editor for the sequence at `idx` (double-click title).
-    EditSequenceRaw { idx: usize },
+    EditSequenceRaw {
+        idx: usize,
+    },
     /// The text_editor inside the sequence editor emitted an action.
     SeqEditorAction(text_editor::Action),
     /// Commit the edited raw sequence back to the alignment.
@@ -699,7 +744,10 @@ pub enum Message {
     /// Export gap-stripped sequences as FASTA.
     ExportRawFastaDialog,
     /// A save path was chosen for FASTA export; `raw` strips gaps.
-    ExportFastaChosen { path: Option<std::path::PathBuf>, raw: bool },
+    ExportFastaChosen {
+        path: Option<std::path::PathBuf>,
+        raw: bool,
+    },
     /// Export the identity matrix as CSV.
     ExportIdentityCsv,
     /// A save path was chosen for the CSV export.
@@ -983,7 +1031,8 @@ pub enum Message {
 impl HelixViewApp {
     /// Display name for a tab (document name, or "New Tab").
     pub fn tab_name(rec: &TabRecord) -> String {
-        rec.document.as_ref()
+        rec.document
+            .as_ref()
             .map(|d| d.name.clone())
             .filter(|n| !n.is_empty())
             .unwrap_or_else(|| "New Tab".to_string())
@@ -992,46 +1041,48 @@ impl HelixViewApp {
     /// Snapshot the current live state into `tabs[active_tab]` and switch to `new_idx`.
     /// Clears all transient analysis state. Does nothing if `new_idx == active_tab`.
     pub fn switch_to(&mut self, new_idx: usize) {
-        if new_idx == self.active_tab || new_idx >= self.tabs.len() { return; }
+        if new_idx == self.active_tab || new_idx >= self.tabs.len() {
+            return;
+        }
 
         // Save live state into the current slot.
         self.tabs[self.active_tab] = TabRecord {
-            document:           self.document.clone(),
-            view:               self.view.clone(),
-            history:            std::mem::replace(&mut self.history, EditHistory::new(100)),
-            show_restr_map:     self.show_restr_map,
-            protein_view_doc:   self.protein_view_doc.clone(),
+            document: self.document.clone(),
+            view: self.view.clone(),
+            history: std::mem::replace(&mut self.history, EditHistory::new(100)),
+            show_restr_map: self.show_restr_map,
+            protein_view_doc: self.protein_view_doc.clone(),
             protein_view_frame: self.protein_view_frame,
         };
 
         // Restore from new slot.
         let rec = std::mem::replace(&mut self.tabs[new_idx], TabRecord::empty());
-        self.document           = rec.document;
-        self.view               = rec.view;
-        self.history            = rec.history;
-        self.show_restr_map     = rec.show_restr_map;
-        self.protein_view_doc   = rec.protein_view_doc;
+        self.document = rec.document;
+        self.view = rec.view;
+        self.history = rec.history;
+        self.show_restr_map = rec.show_restr_map;
+        self.protein_view_doc = rec.protein_view_doc;
         self.protein_view_frame = rec.protein_view_frame;
-        self.active_tab         = new_idx;
+        self.active_tab = new_idx;
 
         // Clear transient analysis state.
-        self.pairwise_result    = None;
-        self.orf_results        = None;
-        self.six_frame_result   = None;
-        self.blast              = BlastState::Idle;
-        self.trace_data         = None;
-        self.trace_scroll       = 0.0;
-        self.trace_zoom         = 1.0;
-        self.tree_data          = None;
+        self.pairwise_result = None;
+        self.orf_results = None;
+        self.six_frame_result = None;
+        self.blast = BlastState::Idle;
+        self.trace_data = None;
+        self.trace_scroll = 0.0;
+        self.trace_zoom = 1.0;
+        self.tree_data = None;
         self.tree_selected.clear();
-        self.show_identity_matrix    = false;
-        self.identity_matrix_data    = None;
-        self.show_col_summary   = false;
-        self.show_dot_plot      = false;
-        self.show_conservation  = false;
-        self.seq_editor_idx     = None;
+        self.show_identity_matrix = false;
+        self.identity_matrix_data = None;
+        self.show_col_summary = false;
+        self.show_dot_plot = false;
+        self.show_conservation = false;
+        self.seq_editor_idx = None;
         self.seq_editor_content = None;
-        self.title_menu         = None;
+        self.title_menu = None;
     }
 
     /// Open a document in a tab: use current tab if empty, else create a new tab.
@@ -1049,11 +1100,11 @@ impl HelixViewApp {
         } else {
             // Snapshot current and open new tab.
             self.tabs[self.active_tab] = TabRecord {
-                document:           self.document.clone(),
-                view:               self.view.clone(),
-                history:            std::mem::replace(&mut self.history, EditHistory::new(100)),
-                show_restr_map:     self.show_restr_map,
-                protein_view_doc:   self.protein_view_doc.clone(),
+                document: self.document.clone(),
+                view: self.view.clone(),
+                history: std::mem::replace(&mut self.history, EditHistory::new(100)),
+                show_restr_map: self.show_restr_map,
+                protein_view_doc: self.protein_view_doc.clone(),
                 protein_view_frame: self.protein_view_frame,
             };
             let new_idx = self.tabs.len();
@@ -1068,12 +1119,12 @@ impl HelixViewApp {
             self.show_restr_map = self.prefs.show_restr_map;
             self.protein_view_doc = None;
             self.protein_view_frame = 0;
-            self.pairwise_result  = None;
-            self.orf_results      = None;
+            self.pairwise_result = None;
+            self.orf_results = None;
             self.six_frame_result = None;
-            self.blast            = BlastState::Idle;
-            self.trace_data       = None;
-            self.tree_data        = None;
+            self.blast = BlastState::Idle;
+            self.trace_data = None;
+            self.tree_data = None;
             self.tree_selected.clear();
         }
     }
@@ -1083,9 +1134,7 @@ impl HelixViewApp {
 
 pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
     match message {
-        Message::OpenFileDialog => {
-            Task::perform(pick_file(), Message::FileChosen)
-        }
+        Message::OpenFileDialog => Task::perform(pick_file(), Message::FileChosen),
 
         Message::FileChosen(None) => Task::none(),
 
@@ -1099,7 +1148,8 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         Message::FileLoaded(Ok(aln)) => {
             app.status = format!(
                 "Loaded {} sequences, {} columns",
-                aln.seq_count(), aln.col_count()
+                aln.seq_count(),
+                aln.col_count()
             );
             app.open_in_tab(aln);
             app.plasmid_re_cache = None;
@@ -1145,8 +1195,10 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
 
                 // When a cell is selected for editing, arrow keys move the cursor.
                 if let Some((row, col)) = app.view.edit_cell {
-                    let new_col = ((col as isize + dx).max(0) as usize).min(ncols.saturating_sub(1));
-                    let new_row = ((row as isize + dy).max(0) as usize).min(nrows.saturating_sub(1));
+                    let new_col =
+                        ((col as isize + dx).max(0) as usize).min(ncols.saturating_sub(1));
+                    let new_row =
+                        ((row as isize + dy).max(0) as usize).min(nrows.saturating_sub(1));
                     app.view.edit_cell = Some((new_row, new_col));
                     // Auto-scroll to keep the edit cell visible (approx 100 cols / 30 rows viewport).
                     if new_col < app.view.scroll_col {
@@ -1172,7 +1224,11 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
             if shift {
                 // Range select from last_clicked to idx (inclusive)
                 let from = app.view.last_clicked.unwrap_or(idx);
-                let (lo, hi) = if from <= idx { (from, idx) } else { (idx, from) };
+                let (lo, hi) = if from <= idx {
+                    (from, idx)
+                } else {
+                    (idx, from)
+                };
                 if !ctrl {
                     app.view.selected.clear();
                 }
@@ -1194,7 +1250,7 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
 
         Message::ModifiersChanged(mods) => {
-            app.view.ctrl_held  = mods.control();
+            app.view.ctrl_held = mods.control();
             app.view.shift_held = mods.shift();
             Task::none()
         }
@@ -1221,17 +1277,11 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                 if aln.is_gap_column(col) {
                     let cmd = Box::new(DelColumn::new(col));
                     app.history.execute(cmd, &mut aln);
-                    app.status = format!(
-                        "Deleted gap column {}  (Ctrl+Z to undo)",
-                        col + 1,
-                    );
+                    app.status = format!("Deleted gap column {}  (Ctrl+Z to undo)", col + 1,);
                 } else {
                     let cmd = Box::new(InsertGapColumn { col });
                     app.history.execute(cmd, &mut aln);
-                    app.status = format!(
-                        "Inserted gap at column {}  (Ctrl+Z to undo)",
-                        col + 1,
-                    );
+                    app.status = format!("Inserted gap at column {}  (Ctrl+Z to undo)", col + 1,);
                 }
                 *arc = Arc::new(aln);
             }
@@ -1264,7 +1314,7 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                 let before = aln.col_count();
                 // Delete all all-gap columns (using minimize is the simplest approach).
                 aln.minimize();
-                let after   = aln.col_count();
+                let after = aln.col_count();
                 let removed = before.saturating_sub(after);
                 if removed > 0 {
                     app.history = EditHistory::new(100);
@@ -1291,11 +1341,17 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
 
         Message::ColumnsSelected { start, end } => {
-            let (lo, hi) = if start <= end { (start, end) } else { (end, start) };
+            let (lo, hi) = if start <= end {
+                (start, end)
+            } else {
+                (end, start)
+            };
             app.view.selected_cols = (lo..=hi).collect();
             app.status = format!(
                 "Selected {} column(s) ({}–{}). Backspace to delete.",
-                hi - lo + 1, lo + 1, hi + 1
+                hi - lo + 1,
+                lo + 1,
+                hi + 1
             );
             Task::none()
         }
@@ -1309,7 +1365,7 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                 };
                 if !cols.is_empty() {
                     let mut aln = (**arc).clone();
-                    let count   = cols.len();
+                    let count = cols.len();
                     for col in &cols {
                         let cmd = Box::new(DelColumn::new(*col));
                         app.history.execute(cmd, &mut aln);
@@ -1325,7 +1381,11 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         Message::InsertGapAtCursor => {
             if let (Some((row, col)), Some(arc)) = (app.view.edit_cell, &mut app.document) {
                 let mut aln = (**arc).clone();
-                let cmd = Box::new(InsertGapInSeq { seq_idx: row, col, count: 1 });
+                let cmd = Box::new(InsertGapInSeq {
+                    seq_idx: row,
+                    col,
+                    count: 1,
+                });
                 app.history.execute(cmd, &mut aln);
                 *arc = Arc::new(aln);
                 // Advance cursor one column to stay after the inserted gap.
@@ -1340,8 +1400,14 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                 let mut aln = (**arc).clone();
                 let n = aln.seq_count();
                 for other in 0..n {
-                    if other == row { continue; }
-                    let cmd = Box::new(InsertGapInSeq { seq_idx: other, col, count: 1 });
+                    if other == row {
+                        continue;
+                    }
+                    let cmd = Box::new(InsertGapInSeq {
+                        seq_idx: other,
+                        col,
+                        count: 1,
+                    });
                     app.history.execute(cmd, &mut aln);
                 }
                 *arc = Arc::new(aln);
@@ -1353,9 +1419,13 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         Message::DeleteGapAtCursor => {
             if let (Some((row, col)), Some(arc)) = (app.view.edit_cell, &mut app.document) {
                 // Backspace: delete gap immediately *before* cursor (col - 1).
-                if col == 0 { return Task::none(); }
+                if col == 0 {
+                    return Task::none();
+                }
                 let del_col = col - 1;
-                let is_gap = arc.sequences.get(row)
+                let is_gap = arc
+                    .sequences
+                    .get(row)
                     .and_then(|s| s.residues.get(del_col))
                     .map(|&b| helixview_core::sequence::is_gap(b))
                     .unwrap_or(false);
@@ -1373,14 +1443,20 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
 
         Message::DeleteGapInOthers => {
             if let (Some((row, col)), Some(arc)) = (app.view.edit_cell, &mut app.document) {
-                if col == 0 { return Task::none(); }
+                if col == 0 {
+                    return Task::none();
+                }
                 let del_col = col - 1;
                 let mut aln = (**arc).clone();
                 let n = aln.seq_count();
                 let mut deleted = 0usize;
                 for other in 0..n {
-                    if other == row { continue; }
-                    let is_gap = aln.sequences.get(other)
+                    if other == row {
+                        continue;
+                    }
+                    let is_gap = aln
+                        .sequences
+                        .get(other)
                         .and_then(|s| s.residues.get(del_col))
                         .map(|&b| helixview_core::sequence::is_gap(b))
                         .unwrap_or(false);
@@ -1400,7 +1476,11 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
 
         Message::SpacePressed { shift } => {
             if app.view.edit_cell.is_some() {
-                let msg = if shift { Message::InsertGapInOthers } else { Message::InsertGapAtCursor };
+                let msg = if shift {
+                    Message::InsertGapInOthers
+                } else {
+                    Message::InsertGapAtCursor
+                };
                 update(app, msg)
             } else {
                 Task::none()
@@ -1409,7 +1489,11 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
 
         Message::BackspacePressed { shift } => {
             if app.view.edit_cell.is_some() {
-                let msg = if shift { Message::DeleteGapInOthers } else { Message::DeleteGapAtCursor };
+                let msg = if shift {
+                    Message::DeleteGapInOthers
+                } else {
+                    Message::DeleteGapAtCursor
+                };
                 update(app, msg)
             } else {
                 update(app, Message::DeleteSelectedColumns)
@@ -1418,11 +1502,16 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
 
         Message::RunOrfFinder => {
             if let Some(aln) = &app.document {
-                let idx = app.view.selected.iter().next().copied()
+                let idx = app
+                    .view
+                    .selected
+                    .iter()
+                    .next()
+                    .copied()
                     .or(app.view.hover_row)
                     .unwrap_or(0);
                 if idx < aln.seq_count() {
-                    let seq  = &aln.sequences[idx];
+                    let seq = &aln.sequences[idx];
                     let orfs = helixview_analysis::find_orfs(&seq.residues, 25);
                     let name = seq.name.clone();
                     app.status = format!("Found {} ORF(s) in {}", orfs.len(), name);
@@ -1439,13 +1528,20 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
 
         Message::RunSixFrame => {
             if let Some(aln) = &app.document {
-                let idx = app.view.selected.iter().next().copied()
+                let idx = app
+                    .view
+                    .selected
+                    .iter()
+                    .next()
+                    .copied()
                     .or(app.view.hover_row)
                     .unwrap_or(0);
                 if idx < aln.seq_count() {
-                    let seq  = &aln.sequences[idx];
+                    let seq = &aln.sequences[idx];
                     let name = seq.name.clone();
-                    let nt_len = seq.residues.iter()
+                    let nt_len = seq
+                        .residues
+                        .iter()
                         .filter(|&&b| !helixview_core::sequence::is_gap(b))
                         .count();
                     let frames = helixview_analysis::six_frame_all(&seq.residues);
@@ -1470,18 +1566,25 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
             if let Some(aln) = &app.document {
                 let selected: Vec<usize> = app.view.selected.iter().copied().collect();
                 if selected.len() == 2 {
-                    let seq_a = aln.sequences[selected[0]].residues
-                        .iter().filter(|&&b| !matches!(b, b'-' | b'~' | b'.'))
-                        .copied().collect::<Vec<u8>>();
-                    let seq_b = aln.sequences[selected[1]].residues
-                        .iter().filter(|&&b| !matches!(b, b'-' | b'~' | b'.'))
-                        .copied().collect::<Vec<u8>>();
+                    let seq_a = aln.sequences[selected[0]]
+                        .residues
+                        .iter()
+                        .filter(|&&b| !matches!(b, b'-' | b'~' | b'.'))
+                        .copied()
+                        .collect::<Vec<u8>>();
+                    let seq_b = aln.sequences[selected[1]]
+                        .residues
+                        .iter()
+                        .filter(|&&b| !matches!(b, b'-' | b'~' | b'.'))
+                        .copied()
+                        .collect::<Vec<u8>>();
                     app.computing = Some("Running pairwise alignment…".to_string());
                     Task::perform(
                         async move {
                             tokio::task::spawn_blocking(move || {
                                 helixview_analysis::needleman_wunsch(
-                                    &seq_a, &seq_b,
+                                    &seq_a,
+                                    &seq_b,
                                     helixview_analysis::DEFAULT_MATCH,
                                     helixview_analysis::DEFAULT_MISMATCH,
                                     helixview_analysis::DEFAULT_GAP,
@@ -1511,12 +1614,13 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                 let mut aln = (**arc).clone();
                 let before = aln.col_count();
                 aln.minimize();
-                let after  = aln.col_count();
+                let after = aln.col_count();
                 let removed = before.saturating_sub(after);
                 *arc = Arc::new(aln);
                 // Clear history since minimize is a non-trivial structural change
                 app.history = EditHistory::new(100);
-                app.status = format!("Minimized: removed {removed} all-gap columns ({after} remaining)");
+                app.status =
+                    format!("Minimized: removed {removed} all-gap columns ({after} remaining)");
             }
             Task::none()
         }
@@ -1562,9 +1666,12 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                     for &idx in &app.view.selected {
                         if idx < aln.sequences.len() {
                             // Strip gaps, translate frame 0, replace residues.
-                            let raw: Vec<u8> = aln.sequences[idx].residues.iter()
+                            let raw: Vec<u8> = aln.sequences[idx]
+                                .residues
+                                .iter()
                                 .filter(|&&b| !matches!(b, b'-' | b'~' | b'.'))
-                                .copied().collect();
+                                .copied()
+                                .collect();
                             let protein = helixview_analysis::translate_frame(&raw, 0);
                             aln.sequences[idx].residues = protein;
                         }
@@ -1625,7 +1732,7 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
             } else if !app.view.selected_cols.is_empty() {
                 return update(app, Message::ClearColumnSelection);
             } else {
-                app.view.show_search  = false;
+                app.view.show_search = false;
                 app.view.search_query.clear();
                 app.view.pattern_matches.clear();
                 app.view.pattern_match_idx = 0;
@@ -1644,9 +1751,7 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
 
         Message::ResidueTyped(ch) => {
-            if let (Some((row, col)), Some(arc)) =
-                (app.view.edit_cell, &mut app.document)
-            {
+            if let (Some((row, col)), Some(arc)) = (app.view.edit_cell, &mut app.document) {
                 let b = (ch as u8).to_ascii_uppercase();
                 // Only accept valid residue chars and gap
                 if b.is_ascii_alphabetic() || b == b'-' || b == b'.' {
@@ -1657,8 +1762,8 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                             let old_byte = seq.residues[col];
                             if old_byte != b {
                                 let cmd = Box::new(SetResidues {
-                                    seq_idx:   row,
-                                    position:  col,
+                                    seq_idx: row,
+                                    position: col,
                                     old_bytes: vec![old_byte],
                                     new_bytes: vec![b],
                                 });
@@ -1725,16 +1830,19 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
             app.view.pattern_match_idx = 0;
             if let Some(aln) = &app.document {
                 if !pattern.is_empty() {
-                    let pat_up: Vec<u8> = pattern.bytes()
-                        .map(|b| b.to_ascii_uppercase()).collect();
+                    let pat_up: Vec<u8> = pattern.bytes().map(|b| b.to_ascii_uppercase()).collect();
                     for (ri, seq) in aln.sequences.iter().enumerate() {
                         'col: for ci in 0..seq.residues.len().saturating_sub(pat_up.len() - 1) {
                             for (k, &pb) in pat_up.iter().enumerate() {
-                                let rb = seq.residues.get(ci + k)
+                                let rb = seq
+                                    .residues
+                                    .get(ci + k)
                                     .copied()
                                     .unwrap_or(0)
                                     .to_ascii_uppercase();
-                                if !iupac_matches(pb, rb) { continue 'col; }
+                                if !iupac_matches(pb, rb) {
+                                    continue 'col;
+                                }
                             }
                             app.view.pattern_matches.push((ri, ci));
                         }
@@ -1744,7 +1852,8 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                         let (row, col) = app.view.pattern_matches[0];
                         app.view.scroll_row = row.min(aln.seq_count().saturating_sub(1));
                         app.view.scroll_col = col;
-                        app.status = format!("Pattern '{pattern}': {n} hit(s). Use < > to navigate.");
+                        app.status =
+                            format!("Pattern '{pattern}': {n} hit(s). Use < > to navigate.");
                     } else {
                         app.status = format!("Pattern '{pattern}': no hits.");
                     }
@@ -1766,7 +1875,8 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                     }
                     let n = app.view.pattern_matches.len();
                     if n > 0 {
-                        app.view.scroll_row = app.view.pattern_matches[0].0
+                        app.view.scroll_row = app.view.pattern_matches[0]
+                            .0
                             .min(aln.seq_count().saturating_sub(1));
                         app.status = format!("Name '{query}': {n} match(es). Use < > to navigate.");
                     } else {
@@ -1779,19 +1889,16 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
 
         Message::PatternMatchJump(delta) => {
             let n = app.view.pattern_matches.len();
-            if n == 0 { return Task::none(); }
+            if n == 0 {
+                return Task::none();
+            }
             let idx = app.view.pattern_match_idx;
-            app.view.pattern_match_idx =
-                ((idx as isize + delta).rem_euclid(n as isize)) as usize;
+            app.view.pattern_match_idx = ((idx as isize + delta).rem_euclid(n as isize)) as usize;
             if let Some(aln) = &app.document {
                 let (row, col) = app.view.pattern_matches[app.view.pattern_match_idx];
                 app.view.scroll_row = row.min(aln.seq_count().saturating_sub(1));
                 app.view.scroll_col = col;
-                app.status = format!(
-                    "Hit {} / {}",
-                    app.view.pattern_match_idx + 1,
-                    n,
-                );
+                app.status = format!("Hit {} / {}", app.view.pattern_match_idx + 1, n,);
             }
             Task::none()
         }
@@ -1799,7 +1906,8 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         Message::TitleRightClick { idx } => {
             app.title_menu = Some(idx);
             if let Some(aln) = &app.document {
-                app.rename_input = aln.sequences
+                app.rename_input = aln
+                    .sequences
                     .get(idx)
                     .map(|s| s.name.clone())
                     .unwrap_or_default();
@@ -1899,16 +2007,28 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
             Task::none()
         }
 
-        Message::SetResidueColor { residue, is_nuc, channel, value } => {
+        Message::SetResidueColor {
+            residue,
+            is_nuc,
+            channel,
+            value,
+        } => {
             let mut table = (*app.color_table).clone();
-            let cur = if is_nuc { table.nuc_color(residue) } else { table.aa_color(residue) };
+            let cur = if is_nuc {
+                table.nuc_color(residue)
+            } else {
+                table.aa_color(residue)
+            };
             let new_color = match channel {
                 0 => iced::Color { r: value, ..cur },
                 1 => iced::Color { g: value, ..cur },
                 _ => iced::Color { b: value, ..cur },
             };
-            if is_nuc { table.set_nuc(residue, new_color); }
-            else       { table.set_aa(residue, new_color); }
+            if is_nuc {
+                table.set_nuc(residue, new_color);
+            } else {
+                table.set_aa(residue, new_color);
+            }
             app.color_table = Arc::new(table);
             Task::none()
         }
@@ -1968,8 +2088,8 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
             let c = new_aln.col_count();
             app.status = format!("Alignment complete: {n} sequences × {c} columns");
             app.document = Some(Arc::new(new_aln));
-            app.view     = ViewState::default();
-            app.history  = EditHistory::new(100);
+            app.view = ViewState::default();
+            app.history = EditHistory::new(100);
             Task::none()
         }
 
@@ -1997,12 +2117,15 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
 
         Message::SeqEditorCommit => {
-            if let (Some(idx), Some(content), Some(arc)) =
-                (app.seq_editor_idx, &app.seq_editor_content, &mut app.document)
-            {
+            if let (Some(idx), Some(content), Some(arc)) = (
+                app.seq_editor_idx,
+                &app.seq_editor_content,
+                &mut app.document,
+            ) {
                 let new_raw: String = content.text();
                 // Strip whitespace/newlines the user may have introduced.
-                let new_bytes: Vec<u8> = new_raw.bytes()
+                let new_bytes: Vec<u8> = new_raw
+                    .bytes()
                     .filter(|&b| !b.is_ascii_whitespace())
                     .map(|b| b.to_ascii_uppercase())
                     .collect();
@@ -2015,7 +2138,12 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                     String::new()
                 };
                 // Pad other sequences to the new maximum column count.
-                let new_col_count = aln.sequences.iter().map(|s| s.residues.len()).max().unwrap_or(0);
+                let new_col_count = aln
+                    .sequences
+                    .iter()
+                    .map(|s| s.residues.len())
+                    .max()
+                    .unwrap_or(0);
                 for (i, s) in aln.sequences.iter_mut().enumerate() {
                     if i != idx {
                         let pad = new_col_count.saturating_sub(s.residues.len());
@@ -2028,13 +2156,13 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                 *arc = Arc::new(aln);
                 app.history = EditHistory::new(100);
             }
-            app.seq_editor_idx     = None;
+            app.seq_editor_idx = None;
             app.seq_editor_content = None;
             Task::none()
         }
 
         Message::SeqEditorClose => {
-            app.seq_editor_idx     = None;
+            app.seq_editor_idx = None;
             app.seq_editor_content = None;
             Task::none()
         }
@@ -2043,8 +2171,12 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
             // Use the first two selected sequences; fall back to 0 and 1.
             let mut sel: Vec<usize> = app.view.selected.iter().copied().collect();
             sel.sort_unstable();
-            if let Some(&a) = sel.first() { app.dot_plot_seq_a = a; }
-            if let Some(&b) = sel.get(1)  { app.dot_plot_seq_b = b; }
+            if let Some(&a) = sel.first() {
+                app.dot_plot_seq_a = a;
+            }
+            if let Some(&b) = sel.get(1) {
+                app.dot_plot_seq_b = b;
+            }
             // Ensure b != a and indices are in range.
             if let Some(aln) = &app.document {
                 let n = aln.seq_count();
@@ -2074,7 +2206,7 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
 
         Message::DotPlotWindow(w) => {
-            app.dot_plot_window    = w.max(1);
+            app.dot_plot_window = w.max(1);
             app.dot_plot_min_match = app.dot_plot_min_match.min(app.dot_plot_window);
             Task::none()
         }
@@ -2106,10 +2238,7 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                     app.history.undo(&mut aln);
                     // After undo the command is on the redo stack; its description
                     // is the most recently pushed entry there.
-                    let desc = app.history
-                        .redo_description()
-                        .unwrap_or("edit")
-                        .to_owned();
+                    let desc = app.history.redo_description().unwrap_or("edit").to_owned();
                     *arc = Arc::new(aln);
                     app.status = format!("Undo: {desc}");
                 }
@@ -2122,10 +2251,7 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                 if app.history.can_redo() {
                     let mut aln = (**arc).clone();
                     app.history.redo(&mut aln);
-                    let desc = app.history
-                        .undo_description()
-                        .unwrap_or("edit")
-                        .to_owned();
+                    let desc = app.history.undo_description().unwrap_or("edit").to_owned();
                     *arc = Arc::new(aln);
                     app.status = format!("Redo: {desc}");
                 }
@@ -2149,19 +2275,20 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
 
         Message::FetchAccession => {
             let acc = app.view.fetch_input.trim().to_string();
-            if acc.is_empty() { return Task::none(); }
+            if acc.is_empty() {
+                return Task::none();
+            }
             app.status = format!("Fetching '{acc}' from NCBI…");
-            Task::perform(
-                entrez::fetch_accession(acc),
-                Message::EntrezResult,
-            )
+            Task::perform(entrez::fetch_accession(acc), Message::EntrezResult)
         }
 
         Message::EntrezResult(result) => {
             match result {
                 Ok(fetched) => {
                     let n = fetched.seq_count();
-                    let names: Vec<_> = fetched.sequences.iter()
+                    let names: Vec<_> = fetched
+                        .sequences
+                        .iter()
                         .map(|s| s.name.as_str())
                         .take(3)
                         .collect();
@@ -2169,8 +2296,8 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                     match &mut app.document {
                         None => {
                             app.document = Some(Arc::new(fetched));
-                            app.history  = EditHistory::new(100);
-                            app.view     = ViewState::default();
+                            app.history = EditHistory::new(100);
+                            app.view = ViewState::default();
                         }
                         Some(arc) => {
                             let mut aln = (**arc).clone();
@@ -2192,31 +2319,37 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
 
         // ── Export ───────────────────────────────────────────────────────────
-        Message::ExportFastaDialog => {
-            Task::perform(
-                async { rfd::AsyncFileDialog::new()
+        Message::ExportFastaDialog => Task::perform(
+            async {
+                rfd::AsyncFileDialog::new()
                     .add_filter("FASTA", &["fa", "fasta", "fna", "faa"])
-                    .save_file().await
+                    .save_file()
+                    .await
                     .map(|h| h.path().to_path_buf())
-                },
-                |p| Message::ExportFastaChosen { path: p, raw: false },
-            )
-        }
+            },
+            |p| Message::ExportFastaChosen {
+                path: p,
+                raw: false,
+            },
+        ),
 
-        Message::ExportRawFastaDialog => {
-            Task::perform(
-                async { rfd::AsyncFileDialog::new()
+        Message::ExportRawFastaDialog => Task::perform(
+            async {
+                rfd::AsyncFileDialog::new()
                     .add_filter("FASTA", &["fa", "fasta", "fna", "faa"])
-                    .save_file().await
+                    .save_file()
+                    .await
                     .map(|h| h.path().to_path_buf())
-                },
-                |p| Message::ExportFastaChosen { path: p, raw: true },
-            )
-        }
+            },
+            |p| Message::ExportFastaChosen { path: p, raw: true },
+        ),
 
         Message::ExportFastaChosen { path: None, .. } => Task::none(),
 
-        Message::ExportFastaChosen { path: Some(path), raw } => {
+        Message::ExportFastaChosen {
+            path: Some(path),
+            raw,
+        } => {
             if let Some(arc) = &app.document {
                 // Collect sequences to export: selected rows, or all.
                 let indices: Vec<usize> = if app.view.selected.is_empty() {
@@ -2238,28 +2371,30 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                 }
 
                 match helixview_formats::fasta::write_file(&export_aln, &path) {
-                    Ok(()) => app.status = format!(
-                        "Exported {} sequence(s) to {}{}",
-                        indices.len(),
-                        path.display(),
-                        if raw { " (gaps stripped)" } else { "" }
-                    ),
+                    Ok(()) => {
+                        app.status = format!(
+                            "Exported {} sequence(s) to {}{}",
+                            indices.len(),
+                            path.display(),
+                            if raw { " (gaps stripped)" } else { "" }
+                        )
+                    }
                     Err(e) => app.status = format!("Export error: {e}"),
                 }
             }
             Task::none()
         }
 
-        Message::ExportIdentityCsv => {
-            Task::perform(
-                async { rfd::AsyncFileDialog::new()
+        Message::ExportIdentityCsv => Task::perform(
+            async {
+                rfd::AsyncFileDialog::new()
                     .add_filter("CSV", &["csv"])
-                    .save_file().await
+                    .save_file()
+                    .await
                     .map(|h| h.path().to_path_buf())
-                },
-                Message::ExportCsvChosen,
-            )
-        }
+            },
+            Message::ExportCsvChosen,
+        ),
 
         Message::ExportCsvChosen(None) => Task::none(),
 
@@ -2271,7 +2406,9 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                 csv.push(',');
                 for j in 0..n {
                     csv.push_str(&format!("{}", arc.sequences[j].name.replace(',', "_")));
-                    if j + 1 < n { csv.push(','); }
+                    if j + 1 < n {
+                        csv.push(',');
+                    }
                 }
                 csv.push('\n');
                 for i in 0..n {
@@ -2280,12 +2417,18 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                         let pct = if i == j {
                             100.0f64
                         } else {
-                            let a: Vec<u8> = arc.sequences[i].residues.iter()
+                            let a: Vec<u8> = arc.sequences[i]
+                                .residues
+                                .iter()
                                 .filter(|&&b| !helixview_core::sequence::is_gap(b))
-                                .copied().collect();
-                            let b: Vec<u8> = arc.sequences[j].residues.iter()
+                                .copied()
+                                .collect();
+                            let b: Vec<u8> = arc.sequences[j]
+                                .residues
+                                .iter()
                                 .filter(|&&b| !helixview_core::sequence::is_gap(b))
-                                .copied().collect();
+                                .copied()
+                                .collect();
                             helixview_analysis::pairwise_identity(&a, &b) * 100.0
                         };
                         csv.push_str(&format!(",{:.1}", pct));
@@ -2293,7 +2436,9 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                     csv.push('\n');
                 }
                 match std::fs::write(&path, &csv) {
-                    Ok(()) => app.status = format!("Identity matrix exported to {}", path.display()),
+                    Ok(()) => {
+                        app.status = format!("Identity matrix exported to {}", path.display())
+                    }
                     Err(e) => app.status = format!("CSV export error: {e}"),
                 }
             }
@@ -2338,9 +2483,14 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                     if let Some(seq) = aln.sequences.get_mut(*idx) {
                         // Count non-gap residues before each column boundary.
                         let true_start = seq.residues[..col_lo.min(seq.residues.len())]
-                            .iter().filter(|&&b| !helixview_core::sequence::is_gap(b)).count();
-                        let true_end = seq.residues[..=col_hi.min(seq.residues.len().saturating_sub(1))]
-                            .iter().filter(|&&b| !helixview_core::sequence::is_gap(b)).count()
+                            .iter()
+                            .filter(|&&b| !helixview_core::sequence::is_gap(b))
+                            .count();
+                        let true_end = seq.residues
+                            [..=col_hi.min(seq.residues.len().saturating_sub(1))]
+                            .iter()
+                            .filter(|&&b| !helixview_core::sequence::is_gap(b))
+                            .count()
                             .saturating_sub(1);
 
                         let mut feat = helixview_core::Feature::new(
@@ -2361,7 +2511,8 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                     "Annotated {} sequence(s): '{}' cols {}–{}",
                     annotated,
                     app.view.annotate_type,
-                    col_lo + 1, col_hi + 1
+                    col_lo + 1,
+                    col_hi + 1
                 );
             }
             Task::none()
@@ -2371,10 +2522,14 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         Message::SetProteinViewFrame(frame) => {
             if let Some(arc) = &app.document {
                 let protein_aln = make_protein_alignment(arc, frame);
-                app.protein_view_doc   = Some(Arc::new(protein_aln));
+                app.protein_view_doc = Some(Arc::new(protein_aln));
                 app.protein_view_frame = frame;
                 app.view.protein_view_frame = Some(frame);
-                let label: i8 = if frame < 3 { (frame as i8) + 1 } else { -((frame as i8) - 2) };
+                let label: i8 = if frame < 3 {
+                    (frame as i8) + 1
+                } else {
+                    -((frame as i8) - 2)
+                };
                 app.status = format!("Protein view — frame {:+}", label);
             }
             Task::none()
@@ -2393,22 +2548,36 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
             Task::none()
         }
 
-        Message::BlastProgramChanged(p) => { app.view.blast_program = p; Task::none() }
-        Message::BlastDatabaseChanged(d) => { app.view.blast_database = d; Task::none() }
+        Message::BlastProgramChanged(p) => {
+            app.view.blast_program = p;
+            Task::none()
+        }
+        Message::BlastDatabaseChanged(d) => {
+            app.view.blast_database = d;
+            Task::none()
+        }
 
         Message::SubmitBlast => {
             if let Some(arc) = &app.document {
-                let idx = app.view.selected.iter().next().copied()
+                let idx = app
+                    .view
+                    .selected
+                    .iter()
+                    .next()
+                    .copied()
                     .or(app.view.hover_row)
                     .unwrap_or(0);
                 if let Some(seq) = arc.sequences.get(idx) {
-                    let residues = seq.residues.iter()
+                    let residues = seq
+                        .residues
+                        .iter()
                         .filter(|&&b| !helixview_core::sequence::is_gap(b))
-                        .copied().collect::<Vec<u8>>();
-                    let program  = app.view.blast_program.clone();
+                        .copied()
+                        .collect::<Vec<u8>>();
+                    let program = app.view.blast_program.clone();
                     let database = app.view.blast_database.clone();
                     app.status = format!("Submitting {} to NCBI BLAST…", seq.name);
-                    app.blast  = BlastState::Idle;
+                    app.blast = BlastState::Idle;
                     return Task::perform(
                         async move { blast::submit(&residues, &program, &database).await },
                         Message::BlastSubmitted,
@@ -2420,14 +2589,14 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
 
         Message::BlastSubmitted(Ok(rid)) => {
             app.status = format!("BLAST submitted — RID: {rid}  (click 'Check Results' to poll)");
-            app.blast  = BlastState::Submitted(rid);
+            app.blast = BlastState::Submitted(rid);
             app.view.show_blast_panel = false;
             Task::none()
         }
 
         Message::BlastSubmitted(Err(e)) => {
             app.status = format!("BLAST submit failed: {e}");
-            app.blast  = BlastState::Failed(e);
+            app.blast = BlastState::Failed(e);
             Task::none()
         }
 
@@ -2461,7 +2630,7 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
 
         Message::BlastPollResult(Err(e)) => {
-            app.blast  = BlastState::Failed(e.clone());
+            app.blast = BlastState::Failed(e.clone());
             app.status = format!("BLAST poll error: {e}");
             Task::none()
         }
@@ -2469,22 +2638,19 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         Message::BlastResultsFetched(Ok(hits)) => {
             let n = hits.len();
             app.status = format!("BLAST complete — {n} hit(s) found.");
-            app.blast  = BlastState::Complete(hits);
+            app.blast = BlastState::Complete(hits);
             Task::none()
         }
 
         Message::BlastResultsFetched(Err(e)) => {
-            app.blast  = BlastState::Failed(e.clone());
+            app.blast = BlastState::Failed(e.clone());
             app.status = format!("BLAST fetch error: {e}");
             Task::none()
         }
 
         Message::BlastImportHit(accession) => {
             app.status = format!("Fetching hit '{accession}' from NCBI…");
-            Task::perform(
-                entrez::fetch_accession(accession),
-                Message::EntrezResult,
-            )
+            Task::perform(entrez::fetch_accession(accession), Message::EntrezResult)
         }
 
         Message::CloseBlast => {
@@ -2499,9 +2665,7 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
 
         // ── ABI trace viewer ──────────────────────────────────────────────────
-        Message::OpenTraceDialog => {
-            Task::perform(pick_trace_file(), Message::TraceFileChosen)
-        }
+        Message::OpenTraceDialog => Task::perform(pick_trace_file(), Message::TraceFileChosen),
 
         Message::TraceFileChosen(None) => Task::none(),
 
@@ -2509,8 +2673,7 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
             app.status = format!("Loading ABI trace: {}…", path.display());
             Task::perform(
                 async move {
-                    let data = tokio::fs::read(&path).await
-                        .map_err(|e| e.to_string())?;
+                    let data = tokio::fs::read(&path).await.map_err(|e| e.to_string())?;
                     helixview_formats::abi::parse(&data)
                 },
                 Message::TraceLoaded,
@@ -2520,10 +2683,11 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         Message::TraceLoaded(Ok(trace)) => {
             app.status = format!(
                 "Loaded ABI trace: {} bases, {} samples",
-                trace.bases.len(), trace.num_samples,
+                trace.bases.len(),
+                trace.num_samples,
             );
             app.trace_scroll = 0.0;
-            app.trace_zoom   = 1.0;
+            app.trace_zoom = 1.0;
             // Choose default quant channels from FWO_ order.
             app.trace_quant_ch_a = trace.channel_bases[0];
             app.trace_quant_ch_b = trace.channel_bases[1];
@@ -2562,7 +2726,6 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
 
         // ── Tree viewer ───────────────────────────────────────────────────────
-
         Message::BuildTreeFromAlignment => {
             if let Some(aln) = &app.document {
                 let n = aln.seq_count();
@@ -2590,19 +2753,14 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
             }
         }
 
-        Message::OpenTreeDialog => {
-            Task::perform(pick_tree_file(), Message::TreeFileChosen)
-        }
+        Message::OpenTreeDialog => Task::perform(pick_tree_file(), Message::TreeFileChosen),
 
         Message::TreeFileChosen(None) => Task::none(),
 
         Message::TreeFileChosen(Some(path)) => {
             app.status = format!("Loading tree {}…", path.display());
             Task::perform(
-                async move {
-                    helixview_formats::newick::parse_file(&path)
-                        .map_err(|e| e.to_string())
-                },
+                async move { helixview_formats::newick::parse_file(&path).map_err(|e| e.to_string()) },
                 Message::TreeLoaded,
             )
         }
@@ -2644,21 +2802,39 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
 
         // ── Composition & Tm ─────────────────────────────────────────────────
-
-        Message::ShowComposition  => { app.show_composition = true;  Task::none() }
-        Message::CloseComposition => { app.show_composition = false; Task::none() }
-        Message::ShowOligoTm      => { app.show_oligo_tm = true;  Task::none() }
-        Message::CloseOligoTm     => { app.show_oligo_tm = false; Task::none() }
+        Message::ShowComposition => {
+            app.show_composition = true;
+            Task::none()
+        }
+        Message::CloseComposition => {
+            app.show_composition = false;
+            Task::none()
+        }
+        Message::ShowOligoTm => {
+            app.show_oligo_tm = true;
+            Task::none()
+        }
+        Message::CloseOligoTm => {
+            app.show_oligo_tm = false;
+            Task::none()
+        }
 
         // ── Hydrophobicity profile ────────────────────────────────────────────
-        Message::ShowHydrophobicity  => { app.show_hydrophobicity = true;  Task::none() }
-        Message::CloseHydrophobicity => { app.show_hydrophobicity = false; Task::none() }
-        Message::HydroWindow(w)      => { app.hydro_window = w.max(3).min(25); Task::none() }
+        Message::ShowHydrophobicity => {
+            app.show_hydrophobicity = true;
+            Task::none()
+        }
+        Message::CloseHydrophobicity => {
+            app.show_hydrophobicity = false;
+            Task::none()
+        }
+        Message::HydroWindow(w) => {
+            app.hydro_window = w.max(3).min(25);
+            Task::none()
+        }
 
         // ── PDF export ────────────────────────────────────────────────────────
-        Message::ExportPdfDialog => {
-            Task::perform(save_pdf_dialog(), Message::PdfExportPath)
-        }
+        Message::ExportPdfDialog => Task::perform(save_pdf_dialog(), Message::PdfExportPath),
         Message::PdfExportPath(None) => Task::none(),
         Message::PdfExportPath(Some(path)) => {
             if let Some(aln) = &app.document {
@@ -2667,9 +2843,7 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                 let col_end = aln.col_count();
                 let color_table = Arc::clone(&app.color_table);
                 Task::perform(
-                    async move {
-                        export_pdf_task(aln, opts, 0, col_end, color_table, path).await
-                    },
+                    async move { export_pdf_task(aln, opts, 0, col_end, color_table, path).await },
                     Message::PdfExportDone,
                 )
             } else {
@@ -2686,15 +2860,31 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
 
         // ── Text export ───────────────────────────────────────────────────────
-        Message::ShowTextExport    => { app.show_text_export = true;  Task::none() }
-        Message::CloseTextExport   => { app.show_text_export = false; Task::none() }
-        Message::TextExportResPerRow(v) => { app.text_export_opts.residues_per_row = v; Task::none() }
-        Message::TextExportTitleChars(v) => { app.text_export_opts.title_chars = v; Task::none() }
-        Message::TextExportShowRuler(v) => { app.text_export_opts.show_ruler = v; Task::none() }
-        Message::TextExportNumberLines(v) => { app.text_export_opts.number_lines = v; Task::none() }
-        Message::TextExportSave => {
-            Task::perform(save_text_dialog(), Message::TextExportPath)
+        Message::ShowTextExport => {
+            app.show_text_export = true;
+            Task::none()
         }
+        Message::CloseTextExport => {
+            app.show_text_export = false;
+            Task::none()
+        }
+        Message::TextExportResPerRow(v) => {
+            app.text_export_opts.residues_per_row = v;
+            Task::none()
+        }
+        Message::TextExportTitleChars(v) => {
+            app.text_export_opts.title_chars = v;
+            Task::none()
+        }
+        Message::TextExportShowRuler(v) => {
+            app.text_export_opts.show_ruler = v;
+            Task::none()
+        }
+        Message::TextExportNumberLines(v) => {
+            app.text_export_opts.number_lines = v;
+            Task::none()
+        }
+        Message::TextExportSave => Task::perform(save_text_dialog(), Message::TextExportPath),
         Message::TextExportPath(None) => Task::none(),
         Message::TextExportPath(Some(path)) => {
             if let Some(aln) = &app.document {
@@ -2725,10 +2915,12 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
 
         // ── Mutual information ────────────────────────────────────────────────
-        Message::ShowMutualInfo  => {
+        Message::ShowMutualInfo => {
             app.show_mutual_info = true;
             let stale = app.mi_aln_ptr.map_or(true, |p| {
-                app.document.as_ref().map_or(true, |a| Arc::as_ptr(a) as usize != p)
+                app.document
+                    .as_ref()
+                    .map_or(true, |a| Arc::as_ptr(a) as usize != p)
             });
             if app.document.is_some() && (app.mi_result.is_none() || stale) && !app.mi_running {
                 Task::done(Message::RunMutualInfo)
@@ -2736,25 +2928,50 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                 Task::none()
             }
         }
-        Message::CloseMutualInfo => { app.show_mutual_info = false; Task::none() }
-        Message::MiMinObs(v)    => { app.mi_min_obs = v; Task::none() }
-        Message::MiTopN(v)      => { app.mi_top_n   = v; Task::none() }
-        Message::MiStemMinWcTypes(v) => { app.mi_stem_min_wc_types = v; Task::none() }
-        Message::MiStemMinWcFrac(v)  => { app.mi_stem_min_wc_frac  = v; Task::none() }
-        Message::MiSetTab(tab)      => { app.mi_tab = tab; Task::none() }
-        Message::TogglePairingArcs  => { app.show_pairing_arcs = !app.show_pairing_arcs; Task::none() }
-        Message::PairingArcThreshold(v) => { app.pairing_arc_threshold = v; Task::none() }
-        Message::RunMutualInfo  => {
+        Message::CloseMutualInfo => {
+            app.show_mutual_info = false;
+            Task::none()
+        }
+        Message::MiMinObs(v) => {
+            app.mi_min_obs = v;
+            Task::none()
+        }
+        Message::MiTopN(v) => {
+            app.mi_top_n = v;
+            Task::none()
+        }
+        Message::MiStemMinWcTypes(v) => {
+            app.mi_stem_min_wc_types = v;
+            Task::none()
+        }
+        Message::MiStemMinWcFrac(v) => {
+            app.mi_stem_min_wc_frac = v;
+            Task::none()
+        }
+        Message::MiSetTab(tab) => {
+            app.mi_tab = tab;
+            Task::none()
+        }
+        Message::TogglePairingArcs => {
+            app.show_pairing_arcs = !app.show_pairing_arcs;
+            Task::none()
+        }
+        Message::PairingArcThreshold(v) => {
+            app.pairing_arc_threshold = v;
+            Task::none()
+        }
+        Message::RunMutualInfo => {
             if let Some(aln) = &app.document {
                 if aln.seq_count() < 2 {
-                    app.status = "MI requires at least 2 sequences — load an alignment first.".to_string();
+                    app.status =
+                        "MI requires at least 2 sequences — load an alignment first.".to_string();
                     return Task::none();
                 }
                 app.mi_running = true;
                 app.computing = Some("Computing mutual information…".to_string());
                 let aln = Arc::clone(aln);
                 let min_obs = app.mi_min_obs;
-                let top_n   = app.mi_top_n;
+                let top_n = app.mi_top_n;
                 Task::perform(
                     async move {
                         tokio::task::spawn_blocking(move || {
@@ -2776,9 +2993,12 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
             let n_seqs = app.document.as_ref().map_or(0, |a| a.seq_count());
             app.status = format!(
                 "MI done — {} seqs · {} cols · {} top pairs · max MI {:.3}",
-                n_seqs, result.n_cols, result.top_pairs.len(), result.max_mi()
+                n_seqs,
+                result.n_cols,
+                result.top_pairs.len(),
+                result.max_mi()
             );
-            app.mi_result  = Some(result);
+            app.mi_result = Some(result);
             app.mi_aln_ptr = app.document.as_ref().map(|a| Arc::as_ptr(a) as usize);
             Task::none()
         }
@@ -2801,16 +3021,26 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                             let n = aln.seq_count().min(200);
                             let matrix: Vec<Vec<f64>> = (0..n)
                                 .map(|i| {
-                                    let a: Vec<u8> = aln.sequences[i].residues.iter()
-                                        .filter(|&&b| !matches!(b, b'-'|b'~'|b'.'))
-                                        .copied().collect();
-                                    (0..n).map(|j| {
-                                        if i == j { return 1.0; }
-                                        let b_seq: Vec<u8> = aln.sequences[j].residues.iter()
-                                            .filter(|&&b| !matches!(b, b'-'|b'~'|b'.'))
-                                            .copied().collect();
-                                        helixview_analysis::pairwise_identity(&a, &b_seq)
-                                    }).collect()
+                                    let a: Vec<u8> = aln.sequences[i]
+                                        .residues
+                                        .iter()
+                                        .filter(|&&b| !matches!(b, b'-' | b'~' | b'.'))
+                                        .copied()
+                                        .collect();
+                                    (0..n)
+                                        .map(|j| {
+                                            if i == j {
+                                                return 1.0;
+                                            }
+                                            let b_seq: Vec<u8> = aln.sequences[j]
+                                                .residues
+                                                .iter()
+                                                .filter(|&&b| !matches!(b, b'-' | b'~' | b'.'))
+                                                .copied()
+                                                .collect();
+                                            helixview_analysis::pairwise_identity(&a, &b_seq)
+                                        })
+                                        .collect()
                                 })
                                 .collect();
                             Arc::new(matrix)
@@ -2835,7 +3065,8 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
             app.computing = None;
             app.status = format!(
                 "Pairwise: score={}, identity={:.1}%",
-                result.score, result.identity * 100.0
+                result.score,
+                result.identity * 100.0
             );
             app.pairwise_result = Some(result);
             Task::none()
@@ -2847,26 +3078,25 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
 
         // ── Local BLAST DB ────────────────────────────────────────────────────
-        Message::CreateBlastDbDialog => {
-            Task::perform(
-                async {
-                    rfd::AsyncFileDialog::new()
-                        .set_title("Select FASTA file to build BLAST database…")
-                        .add_filter("FASTA", &["fasta", "fa", "fna", "faa"])
-                        .add_filter("All files", &["*"])
-                        .pick_file()
-                        .await
-                        .map(|h| h.path().to_path_buf())
-                },
-                Message::CreateBlastDbFasta,
-            )
-        }
+        Message::CreateBlastDbDialog => Task::perform(
+            async {
+                rfd::AsyncFileDialog::new()
+                    .set_title("Select FASTA file to build BLAST database…")
+                    .add_filter("FASTA", &["fasta", "fa", "fna", "faa"])
+                    .add_filter("All files", &["*"])
+                    .pick_file()
+                    .await
+                    .map(|h| h.path().to_path_buf())
+            },
+            Message::CreateBlastDbFasta,
+        ),
         Message::CreateBlastDbFasta(None) => Task::none(),
         Message::CreateBlastDbFasta(Some(fasta_path)) => {
             app.computing = Some("Creating BLAST database…".to_string());
             let db_path = fasta_path.with_extension("");
             // Infer dbtype: check extension first, then sniff content.
-            let ext = fasta_path.extension()
+            let ext = fasta_path
+                .extension()
                 .and_then(|e| e.to_str())
                 .unwrap_or("")
                 .to_ascii_lowercase();
@@ -2877,23 +3107,33 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                 let protein_only: &[u8] = b"EFILPQZefilpqz";
                 bytes.iter().any(|b| protein_only.contains(b))
             });
-            let dbtype = if ext_is_protein || content_is_protein { "prot" } else { "nucl" };
+            let dbtype = if ext_is_protein || content_is_protein {
+                "prot"
+            } else {
+                "nucl"
+            };
             let dbtype = dbtype.to_string();
             Task::perform(
                 async move {
                     tokio::task::spawn_blocking(move || {
                         let out = std::process::Command::new("makeblastdb")
                             .args([
-                                "-in",  fasta_path.to_str().unwrap_or(""),
-                                "-dbtype", &dbtype,
-                                "-out", db_path.to_str().unwrap_or(""),
+                                "-in",
+                                fasta_path.to_str().unwrap_or(""),
+                                "-dbtype",
+                                &dbtype,
+                                "-out",
+                                db_path.to_str().unwrap_or(""),
                                 "-parse_seqids",
                             ])
                             .output()
                             .map_err(|e| format!("makeblastdb not found: {e}"))?;
                         if out.status.success() {
                             let stdout = String::from_utf8_lossy(&out.stdout);
-                            Ok(format!("BLAST DB created. {}", stdout.lines().next().unwrap_or("")))
+                            Ok(format!(
+                                "BLAST DB created. {}",
+                                stdout.lines().next().unwrap_or("")
+                            ))
                         } else {
                             Err(String::from_utf8_lossy(&out.stderr).to_string())
                         }
@@ -2917,8 +3157,11 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
 
         // ── Accessory apps ────────────────────────────────────────────────────
-        Message::ShowAccessories   => { app.show_accessories = true;  Task::none() }
-        Message::CloseAccessories  => {
+        Message::ShowAccessories => {
+            app.show_accessories = true;
+            Task::none()
+        }
+        Message::CloseAccessories => {
             app.show_accessories = false;
             app.editing_accessory = None;
             app.acc_edit_name.clear();
@@ -2928,14 +3171,14 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         Message::NewAccessory => {
             app.editing_accessory = None;
             app.acc_edit_name = String::new();
-            app.acc_edit_cmd  = String::new();
+            app.acc_edit_cmd = String::new();
             Task::none()
         }
         Message::EditAccessory(i) => {
             if let Some(acc) = app.accessories.get(i) {
                 app.editing_accessory = Some(i);
                 app.acc_edit_name = acc.name.clone();
-                app.acc_edit_cmd  = acc.command.clone();
+                app.acc_edit_cmd = acc.command.clone();
             }
             Task::none()
         }
@@ -2948,7 +3191,7 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
         Message::SaveAccessory => {
             let acc = AccessoryApp {
-                name:    app.acc_edit_name.trim().to_string(),
+                name: app.acc_edit_name.trim().to_string(),
                 command: app.acc_edit_cmd.trim().to_string(),
             };
             if !acc.name.is_empty() && !acc.command.is_empty() {
@@ -2966,12 +3209,18 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
             }
             Task::none()
         }
-        Message::AccessoryFieldName(s) => { app.acc_edit_name = s; Task::none() }
-        Message::AccessoryFieldCmd(s)  => { app.acc_edit_cmd  = s; Task::none() }
+        Message::AccessoryFieldName(s) => {
+            app.acc_edit_name = s;
+            Task::none()
+        }
+        Message::AccessoryFieldCmd(s) => {
+            app.acc_edit_cmd = s;
+            Task::none()
+        }
         Message::RunAccessory(i) => {
             let acc = match app.accessories.get(i) {
                 Some(a) => a.clone(),
-                None    => return Task::none(),
+                None => return Task::none(),
             };
             let seqs_to_export = if let Some(aln) = &app.document {
                 // Export selected or all sequences as FASTA.
@@ -3000,13 +3249,17 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                     tokio::task::spawn_blocking(move || {
                         // Write FASTA to temp file.
                         let tmp = std::env::temp_dir().join("helixview_acc_input.fasta");
-                        std::fs::write(&tmp, &seqs_to_export)
-                            .map_err(|e| e.to_string())?;
-                        let cmd_str = acc.command
+                        std::fs::write(&tmp, &seqs_to_export).map_err(|e| e.to_string())?;
+                        let cmd_str = acc
+                            .command
                             .replace("{input}", tmp.to_str().unwrap_or(""))
-                            .replace("{output}", std::env::temp_dir()
-                                .join("helixview_acc_output.txt")
-                                .to_str().unwrap_or(""));
+                            .replace(
+                                "{output}",
+                                std::env::temp_dir()
+                                    .join("helixview_acc_output.txt")
+                                    .to_str()
+                                    .unwrap_or(""),
+                            );
                         // Run via shell.
                         let out = std::process::Command::new("sh")
                             .args(["-c", &cmd_str])
@@ -3015,8 +3268,11 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                         let stdout = String::from_utf8_lossy(&out.stdout).to_string();
                         let stderr = String::from_utf8_lossy(&out.stderr).to_string();
                         if out.status.success() {
-                            Ok(format!("{} done. {}", acc.name,
-                                stdout.lines().next().unwrap_or("").to_string()))
+                            Ok(format!(
+                                "{} done. {}",
+                                acc.name,
+                                stdout.lines().next().unwrap_or("").to_string()
+                            ))
                         } else {
                             Err(stderr.lines().next().unwrap_or("Unknown error").to_string())
                         }
@@ -3056,7 +3312,9 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
             Task::none()
         }
         Message::PaletteUp => {
-            if app.palette_selected > 0 { app.palette_selected -= 1; }
+            if app.palette_selected > 0 {
+                app.palette_selected -= 1;
+            }
             Task::none()
         }
         Message::PaletteDown => {
@@ -3074,7 +3332,9 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
             Task::none()
         }
         Message::PaletteConfirm => {
-            if let Some(orig) = crate::views::palette_resolve(&app.palette_query, app.palette_selected) {
+            if let Some(orig) =
+                crate::views::palette_resolve(&app.palette_query, app.palette_selected)
+            {
                 app.show_command_palette = false;
                 if let Some(msg) = crate::views::palette_fire(orig) {
                     return update(app, msg);
@@ -3084,8 +3344,14 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
 
         // ── Help ──────────────────────────────────────────────────────────────
-        Message::ShowHelp  => { app.show_help = true;  Task::none() }
-        Message::CloseHelp => { app.show_help = false; Task::none() }
+        Message::ShowHelp => {
+            app.show_help = true;
+            Task::none()
+        }
+        Message::CloseHelp => {
+            app.show_help = false;
+            Task::none()
+        }
 
         // ── Project file ──────────────────────────────────────────────────────
         Message::SaveProjectDialog => {
@@ -3093,8 +3359,7 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
         Message::SaveProjectChosen(None) => Task::none(),
         Message::SaveProjectChosen(Some(path)) => {
-            let result = crate::project::save(app, &path)
-                .map_err(|e| e);
+            let result = crate::project::save(app, &path).map_err(|e| e);
             Task::done(Message::SaveProjectDone(result))
         }
         Message::SaveProjectDone(Ok(())) => {
@@ -3125,9 +3390,15 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
 
         // ── Preferences ───────────────────────────────────────────────────────
-        Message::OpenPrefs   => { app.show_prefs = true;  Task::none() }
-        Message::ClosePrefs  => { app.show_prefs = false; Task::none() }
-        Message::SavePrefs   => {
+        Message::OpenPrefs => {
+            app.show_prefs = true;
+            Task::none()
+        }
+        Message::ClosePrefs => {
+            app.show_prefs = false;
+            Task::none()
+        }
+        Message::SavePrefs => {
             if let Err(e) = crate::prefs::save(&app.prefs) {
                 app.status = format!("Could not save preferences: {e}");
             } else {
@@ -3136,23 +3407,53 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
             app.show_prefs = false;
             Task::none()
         }
-        Message::PrefsUndoDepth(v)         => { app.prefs.undo_depth         = v; Task::none() }
-        Message::PrefsDefaultZoom(v)       => { app.prefs.default_zoom       = v; Task::none() }
-        Message::PrefsFontSize(v)          => { app.prefs.font_size          = v; Task::none() }
-        Message::PrefsShowFeatures(v)      => { app.prefs.show_features      = v; Task::none() }
-        Message::PrefsShowRestrMap(v)      => { app.prefs.show_restr_map     = v; Task::none() }
-        Message::PrefsIdentityThreshold(v) => { app.prefs.identity_threshold = v; Task::none() }
-        Message::PrefsRecentFilesMax(v)    => { app.prefs.recent_files_max   = v; Task::none() }
-        Message::PrefsClearRecent          => { app.prefs.recent_files.clear(); Task::none() }
-        Message::OpenRecentFile(path)      => {
+        Message::PrefsUndoDepth(v) => {
+            app.prefs.undo_depth = v;
+            Task::none()
+        }
+        Message::PrefsDefaultZoom(v) => {
+            app.prefs.default_zoom = v;
+            Task::none()
+        }
+        Message::PrefsFontSize(v) => {
+            app.prefs.font_size = v;
+            Task::none()
+        }
+        Message::PrefsShowFeatures(v) => {
+            app.prefs.show_features = v;
+            Task::none()
+        }
+        Message::PrefsShowRestrMap(v) => {
+            app.prefs.show_restr_map = v;
+            Task::none()
+        }
+        Message::PrefsIdentityThreshold(v) => {
+            app.prefs.identity_threshold = v;
+            Task::none()
+        }
+        Message::PrefsRecentFilesMax(v) => {
+            app.prefs.recent_files_max = v;
+            Task::none()
+        }
+        Message::PrefsClearRecent => {
+            app.prefs.recent_files.clear();
+            Task::none()
+        }
+        Message::OpenRecentFile(path) => {
             app.show_prefs = false;
             app.status = format!("Loading {}…", path.display());
             Task::perform(load_file(path), Message::FileLoaded)
         }
 
         // ── Shaded graphic export ─────────────────────────────────────────────
-        Message::ShowShadedExportDialog  => { app.show_shaded_export = true;  Task::none() }
-        Message::CloseShadedExportDialog => { app.show_shaded_export = false; Task::none() }
+        Message::ShowShadedExportDialog => {
+            app.show_shaded_export = true;
+            Task::none()
+        }
+        Message::CloseShadedExportDialog => {
+            app.show_shaded_export = false;
+            Task::none()
+        }
         Message::ShadedExportSetScheme(s) => {
             app.shaded_export_opts.scheme = s;
             Task::none()
@@ -3182,23 +3483,33 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
         Message::ShadedExportChosen(Some(path)) => {
             if let Some(aln) = &app.document {
-                let aln         = Arc::clone(aln);
-                let rows        = app.view.selected.clone();
-                let col_start   = app.view.selected_cols.iter().next().copied()
-                    .unwrap_or(0);
-                let col_end     = app.view.selected_cols.iter().last().copied()
+                let aln = Arc::clone(aln);
+                let rows = app.view.selected.clone();
+                let col_start = app.view.selected_cols.iter().next().copied().unwrap_or(0);
+                let col_end = app
+                    .view
+                    .selected_cols
+                    .iter()
+                    .last()
+                    .copied()
                     .map(|c| c + 1)
                     .unwrap_or_else(|| aln.col_count());
                 let color_table = Arc::clone(&app.color_table);
-                let opts        = app.shaded_export_opts.clone();
+                let opts = app.shaded_export_opts.clone();
                 app.show_shaded_export = false;
                 app.status = "Exporting shaded graphic…".to_string();
                 Task::perform(
                     async move {
                         let svg = crate::export_shaded::shaded_alignment_svg(
-                            &aln, &rows, col_start, col_end,
-                            &color_table, &opts.scheme, opts.threshold,
-                            opts.show_ruler, opts.show_consensus,
+                            &aln,
+                            &rows,
+                            col_start,
+                            col_end,
+                            &color_table,
+                            &opts.scheme,
+                            opts.threshold,
+                            opts.show_ruler,
+                            opts.show_consensus,
                         );
                         std::fs::write(&path, svg.as_bytes()).map_err(|e| e.to_string())
                     },
@@ -3218,8 +3529,14 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
 
         // ── Taxonomy table ────────────────────────────────────────────────────
-        Message::ShowTaxonomy   => { app.show_taxonomy = true;  Task::none() }
-        Message::CloseTaxonomy  => { app.show_taxonomy = false; Task::none() }
+        Message::ShowTaxonomy => {
+            app.show_taxonomy = true;
+            Task::none()
+        }
+        Message::CloseTaxonomy => {
+            app.show_taxonomy = false;
+            Task::none()
+        }
         Message::SortByTaxonomy(level) => {
             if let Some(arc) = &mut app.document {
                 let mut aln = (**arc).clone();
@@ -3246,11 +3563,21 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
 
         Message::ExportSvgChosen(Some(path)) => {
             if let Some(aln) = &app.document {
-                let aln        = Arc::clone(aln);
-                let rows       = app.view.selected.clone();
-                let col_start  = app.view.selected_cols.iter().next().copied()
+                let aln = Arc::clone(aln);
+                let rows = app.view.selected.clone();
+                let col_start = app
+                    .view
+                    .selected_cols
+                    .iter()
+                    .next()
+                    .copied()
                     .unwrap_or(app.view.scroll_col);
-                let col_end    = app.view.selected_cols.iter().last().copied()
+                let col_end = app
+                    .view
+                    .selected_cols
+                    .iter()
+                    .last()
+                    .copied()
                     .map(|c| c + 1)
                     .unwrap_or_else(|| aln.col_count());
                 let color_table = Arc::clone(&app.color_table);
@@ -3258,10 +3585,13 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                 Task::perform(
                     async move {
                         let svg = crate::export_svg::alignment_to_svg(
-                            &aln, &rows, col_start, col_end, &color_table,
+                            &aln,
+                            &rows,
+                            col_start,
+                            col_end,
+                            &color_table,
                         );
-                        std::fs::write(&path, svg.as_bytes())
-                            .map_err(|e| e.to_string())
+                        std::fs::write(&path, svg.as_bytes()).map_err(|e| e.to_string())
                     },
                     Message::ExportSvgDone,
                 )
@@ -3280,7 +3610,6 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
 
         // ── Plasmid map viewer ────────────────────────────────────────────────
-
         Message::ShowPlasmid => {
             let idx = app.view.selected.iter().next().copied().unwrap_or(0);
             app.plasmid_seq_idx = idx;
@@ -3296,7 +3625,10 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
             }
             Task::none()
         }
-        Message::ClosePlasmid => { app.show_plasmid = false; Task::none() }
+        Message::ClosePlasmid => {
+            app.show_plasmid = false;
+            Task::none()
+        }
         Message::PlasmidPrevSeq => {
             if let Some(aln) = &app.document {
                 if app.plasmid_seq_idx > 0 {
@@ -3370,14 +3702,15 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         Message::ExportPlasmidSvgChosen(None) => Task::none(),
         Message::ExportPlasmidSvgChosen(Some(path)) => {
             if let Some(aln) = &app.document {
-                let aln            = Arc::clone(aln);
-                let seq_idx        = app.plasmid_seq_idx;
-                let show_features  = app.plasmid_show_features;
-                let show_re        = app.plasmid_show_re;
+                let aln = Arc::clone(aln);
+                let seq_idx = app.plasmid_seq_idx;
+                let show_features = app.plasmid_show_features;
+                let show_re = app.plasmid_show_re;
                 app.status = "Exporting plasmid SVG…".to_string();
                 Task::perform(
                     async move {
-                        let svg = crate::views::plasmid_to_svg(&aln, seq_idx, show_features, show_re);
+                        let svg =
+                            crate::views::plasmid_to_svg(&aln, seq_idx, show_features, show_re);
                         std::fs::write(&path, svg.as_bytes()).map_err(|e| e.to_string())
                     },
                     Message::ExportPlasmidSvgDone,
@@ -3401,29 +3734,42 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
             if let (Some(i), Some(aln)) = (idx, &app.document) {
                 if let Some(seq) = aln.sequences.get(app.plasmid_seq_idx) {
                     if let Some(feat) = seq.features.get(i) {
-                        app.plasmid_edit_name  = feat.name.clone();
+                        app.plasmid_edit_name = feat.name.clone();
                         app.plasmid_edit_start = (feat.start + 1).to_string();
-                        app.plasmid_edit_end   = (feat.end   + 1).to_string();
+                        app.plasmid_edit_end = (feat.end + 1).to_string();
                         app.plasmid_edit_color = feat.color;
-                        app.plasmid_edit_hex   = format!("#{:02X}{:02X}{:02X}",
+                        app.plasmid_edit_hex = format!(
+                            "#{:02X}{:02X}{:02X}",
                             (feat.color.r * 255.0).round() as u8,
                             (feat.color.g * 255.0).round() as u8,
-                            (feat.color.b * 255.0).round() as u8);
+                            (feat.color.b * 255.0).round() as u8
+                        );
                     }
                 }
             }
             Task::none()
         }
 
-        Message::PlasmidEditName(s)  => { app.plasmid_edit_name  = s; Task::none() }
-        Message::PlasmidEditStart(s) => { app.plasmid_edit_start = s; Task::none() }
-        Message::PlasmidEditEnd(s)   => { app.plasmid_edit_end   = s; Task::none() }
+        Message::PlasmidEditName(s) => {
+            app.plasmid_edit_name = s;
+            Task::none()
+        }
+        Message::PlasmidEditStart(s) => {
+            app.plasmid_edit_start = s;
+            Task::none()
+        }
+        Message::PlasmidEditEnd(s) => {
+            app.plasmid_edit_end = s;
+            Task::none()
+        }
         Message::PlasmidEditColor(c) => {
             app.plasmid_edit_color = c;
-            app.plasmid_edit_hex = format!("#{:02X}{:02X}{:02X}",
+            app.plasmid_edit_hex = format!(
+                "#{:02X}{:02X}{:02X}",
                 (c.r * 255.0).round() as u8,
                 (c.g * 255.0).round() as u8,
-                (c.b * 255.0).round() as u8);
+                (c.b * 255.0).round() as u8
+            );
             Task::none()
         }
         Message::PlasmidEditHex(s) => {
@@ -3437,27 +3783,37 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
 
         Message::PlasmidApplyEdit => {
             if let (Some(idx), Some(arc)) = (app.plasmid_selected_feat, &mut app.document) {
-                let seq_idx   = app.plasmid_seq_idx;
-                let new_start = app.plasmid_edit_start.parse::<usize>()
+                let seq_idx = app.plasmid_seq_idx;
+                let new_start = app
+                    .plasmid_edit_start
+                    .parse::<usize>()
                     .map(|v| v.saturating_sub(1))
                     .unwrap_or_else(|_| {
-                        (**arc).sequences.get(seq_idx)
+                        (**arc)
+                            .sequences
+                            .get(seq_idx)
                             .and_then(|s| s.features.get(idx))
                             .map(|f| f.start)
                             .unwrap_or(0)
                     });
-                let new_end = app.plasmid_edit_end.parse::<usize>()
+                let new_end = app
+                    .plasmid_edit_end
+                    .parse::<usize>()
                     .map(|v| v.saturating_sub(1))
                     .unwrap_or_else(|_| {
-                        (**arc).sequences.get(seq_idx)
+                        (**arc)
+                            .sequences
+                            .get(seq_idx)
                             .and_then(|s| s.features.get(idx))
                             .map(|f| f.end)
                             .unwrap_or(0)
                     });
                 let cmd = Box::new(EditFeature::new(
-                    seq_idx, idx,
+                    seq_idx,
+                    idx,
                     app.plasmid_edit_name.clone(),
-                    new_start, new_end,
+                    new_start,
+                    new_end,
                     app.plasmid_edit_color,
                 ));
                 let mut aln = (**arc).clone();
@@ -3490,21 +3846,29 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
                 };
                 let mut feat = Feature::new("New feature", 0, end_pos.saturating_sub(1));
                 // Cycle through distinct colors so successive features are visually distinct.
-                const NEW_FEAT_PALETTE: [(u8,u8,u8); 8] = [
-                    ( 52, 120, 205), (220, 115,  25), ( 50, 180,  65),
-                    (215,  50,  50), (140,  50, 190), (  5, 165, 165),
-                    (215,  50, 120), (189, 166,  12),
+                const NEW_FEAT_PALETTE: [(u8, u8, u8); 8] = [
+                    (52, 120, 205),
+                    (220, 115, 25),
+                    (50, 180, 65),
+                    (215, 50, 50),
+                    (140, 50, 190),
+                    (5, 165, 165),
+                    (215, 50, 120),
+                    (189, 166, 12),
                 ];
                 let (r, g, b) = NEW_FEAT_PALETTE[new_idx % NEW_FEAT_PALETTE.len()];
                 feat.color = helixview_core::color::Color::from_u8(r, g, b);
-                let cmd  = Box::new(AddFeature { seq_idx, feature: feat });
+                let cmd = Box::new(AddFeature {
+                    seq_idx,
+                    feature: feat,
+                });
                 let mut aln = (**arc).clone();
                 app.history.execute(cmd, &mut aln);
                 *arc = Arc::new(aln);
                 app.plasmid_selected_feat = Some(new_idx);
-                app.plasmid_edit_name  = "New feature".to_string();
+                app.plasmid_edit_name = "New feature".to_string();
                 app.plasmid_edit_start = "1".to_string();
-                app.plasmid_edit_end   = end_pos.to_string();
+                app.plasmid_edit_end = end_pos.to_string();
             }
             Task::none()
         }
@@ -3522,7 +3886,7 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
             Task::none()
         }
         Message::PlasmidZoomReset => {
-            app.plasmid_zoom  = 1.0;
+            app.plasmid_zoom = 1.0;
             app.plasmid_pan_x = 0.0;
             app.plasmid_pan_y = 0.0;
             Task::none()
@@ -3534,7 +3898,6 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         }
 
         // ── Tab management ────────────────────────────────────────────────────
-
         Message::NewTab => {
             app.open_in_tab(SeqAlignment::new("Untitled"));
             app.status = "New tab opened".to_string();
@@ -3549,18 +3912,22 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
         Message::CloseTab(idx) => {
             if app.tabs.len() <= 1 {
                 // Only one tab — just clear it rather than removing.
-                app.document    = None;
-                app.view        = ViewState::default();
-                app.history     = EditHistory::new(100);
+                app.document = None;
+                app.view = ViewState::default();
+                app.history = EditHistory::new(100);
                 app.show_restr_map = false;
                 app.protein_view_doc = None;
-                app.tabs[0]     = TabRecord::empty();
-                app.active_tab  = 0;
-                app.status      = "Closed tab".to_string();
+                app.tabs[0] = TabRecord::empty();
+                app.active_tab = 0;
+                app.status = "Closed tab".to_string();
             } else {
                 // Switch away first if we're closing the active tab.
                 if idx == app.active_tab {
-                    let go_to = if idx + 1 < app.tabs.len() { idx + 1 } else { idx - 1 };
+                    let go_to = if idx + 1 < app.tabs.len() {
+                        idx + 1
+                    } else {
+                        idx - 1
+                    };
                     app.switch_to(go_to);
                 }
                 // Adjust active_tab index after removal.
@@ -3578,12 +3945,15 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
             if let (Some(tree), Some(doc)) = (&app.tree_data, &mut app.document) {
                 let names: Vec<String> = doc.sequences.iter().map(|s| s.name.clone()).collect();
                 let leaves = tree.leaf_names();
-                let matched = leaves.iter()
-                    .filter(|leaf| names.iter().any(|n| {
-                        let lu = leaf.to_ascii_uppercase();
-                        let nu = n.to_ascii_uppercase();
-                        nu == lu || nu.starts_with(&lu) || lu.starts_with(&nu)
-                    }))
+                let matched = leaves
+                    .iter()
+                    .filter(|leaf| {
+                        names.iter().any(|n| {
+                            let lu = leaf.to_ascii_uppercase();
+                            let nu = n.to_ascii_uppercase();
+                            nu == lu || nu.starts_with(&lu) || lu.starts_with(&nu)
+                        })
+                    })
                     .count();
                 let order = tree.alignment_order(&names);
                 let mut aln = (**doc).clone();
@@ -3620,19 +3990,30 @@ pub fn update(app: &mut HelixViewApp, message: Message) -> Task<Message> {
 
 /// Build a protein view alignment from a nucleotide alignment using the given frame (0–5).
 fn make_protein_alignment(aln: &SeqAlignment, frame: usize) -> SeqAlignment {
-    let frame_label: i8 = if frame < 3 { (frame as i8) + 1 } else { -((frame as i8) - 2) };
+    let frame_label: i8 = if frame < 3 {
+        (frame as i8) + 1
+    } else {
+        -((frame as i8) - 2)
+    };
     let mut out = SeqAlignment::new(&format!("{} [Protein {:+}]", aln.name, frame_label));
     for seq in &aln.sequences {
-        if !seq.seq_type.is_nucleic() { continue; }
+        if !seq.seq_type.is_nucleic() {
+            continue;
+        }
         let protein = helixview_analysis::translate_frame(&seq.residues, frame);
         let mut ps = seq.clone();
-        ps.residues  = protein;
+        ps.residues = protein;
         ps.gap_locks.clear();
-        ps.seq_type  = helixview_core::SequenceType::Protein;
+        ps.seq_type = helixview_core::SequenceType::Protein;
         out.push(ps);
     }
     // Pad to equal width.
-    let max_len = out.sequences.iter().map(|s| s.residues.len()).max().unwrap_or(0);
+    let max_len = out
+        .sequences
+        .iter()
+        .map(|s| s.residues.len())
+        .max()
+        .unwrap_or(0);
     for seq in &mut out.sequences {
         seq.residues.resize(max_len, b'-');
         seq.gap_locks.resize(max_len, false);
@@ -3649,19 +4030,23 @@ pub fn subscription(_app: &HelixViewApp) -> iced::Subscription<Message> {
     iced::Subscription::batch([
         keyboard::on_key_press(|key, mods| {
             match key {
-                Key::Named(Named::ArrowLeft)  => Some(Message::GridScrolled { dx: -1, dy:   0 }),
-                Key::Named(Named::ArrowRight) => Some(Message::GridScrolled { dx:  1, dy:   0 }),
-                Key::Named(Named::ArrowUp)    => Some(Message::GridScrolled { dx:  0, dy:  -1 }),
-                Key::Named(Named::ArrowDown)  => Some(Message::GridScrolled { dx:  0, dy:   1 }),
-                Key::Named(Named::PageUp)     => Some(Message::GridScrolled { dx:  0, dy: -20 }),
-                Key::Named(Named::PageDown)   => Some(Message::GridScrolled { dx:  0, dy:  20 }),
-                Key::Named(Named::Home)       => Some(Message::ScrollColSet(0)),
-                Key::Named(Named::End)        => Some(Message::ScrollToEnd),
+                Key::Named(Named::ArrowLeft) => Some(Message::GridScrolled { dx: -1, dy: 0 }),
+                Key::Named(Named::ArrowRight) => Some(Message::GridScrolled { dx: 1, dy: 0 }),
+                Key::Named(Named::ArrowUp) => Some(Message::GridScrolled { dx: 0, dy: -1 }),
+                Key::Named(Named::ArrowDown) => Some(Message::GridScrolled { dx: 0, dy: 1 }),
+                Key::Named(Named::PageUp) => Some(Message::GridScrolled { dx: 0, dy: -20 }),
+                Key::Named(Named::PageDown) => Some(Message::GridScrolled { dx: 0, dy: 20 }),
+                Key::Named(Named::Home) => Some(Message::ScrollColSet(0)),
+                Key::Named(Named::End) => Some(Message::ScrollToEnd),
                 // Backspace/Delete/Space routing is handled by update() based on edit mode.
-                Key::Named(Named::Backspace)  => Some(Message::BackspacePressed { shift: mods.shift() }),
-                Key::Named(Named::Delete)     => Some(Message::DeleteSelectedColumns),
-                Key::Named(Named::Space)      => Some(Message::SpacePressed { shift: mods.shift() }),
-                Key::Named(Named::Tab)        => Some(Message::GridScrolled { dx: 1, dy: 0 }),
+                Key::Named(Named::Backspace) => Some(Message::BackspacePressed {
+                    shift: mods.shift(),
+                }),
+                Key::Named(Named::Delete) => Some(Message::DeleteSelectedColumns),
+                Key::Named(Named::Space) => Some(Message::SpacePressed {
+                    shift: mods.shift(),
+                }),
+                Key::Named(Named::Tab) => Some(Message::GridScrolled { dx: 1, dy: 0 }),
                 _ => {
                     if mods.control() {
                         match key {
@@ -3673,16 +4058,20 @@ pub fn subscription(_app: &HelixViewApp) -> iced::Subscription<Message> {
                             Key::Character(c) if c.as_str() == "f" => Some(Message::ToggleSearch),
                             Key::Character(c) if c.as_str() == "a" => Some(Message::SelectAll),
                             Key::Character(c) if c.as_str() == "d" => Some(Message::SelectNone),
-                            Key::Character(c) if c.as_str() == "=" || c.as_str() == "+" => Some(Message::ZoomIn),
+                            Key::Character(c) if c.as_str() == "=" || c.as_str() == "+" => {
+                                Some(Message::ZoomIn)
+                            }
                             Key::Character(c) if c.as_str() == "-" => Some(Message::ZoomOut),
                             Key::Character(c) if c.as_str() == "0" => Some(Message::ZoomReset),
-                            Key::Character(c) if c.as_str() == "p" => Some(Message::OpenCommandPalette),
+                            Key::Character(c) if c.as_str() == "p" => {
+                                Some(Message::OpenCommandPalette)
+                            }
                             _ => None,
                         }
                     } else {
                         match key {
                             Key::Named(Named::Escape) => Some(Message::SearchClose),
-                            Key::Named(Named::ArrowUp)   => Some(Message::PaletteUp),
+                            Key::Named(Named::ArrowUp) => Some(Message::PaletteUp),
                             Key::Named(Named::ArrowDown) => Some(Message::PaletteDown),
                             Key::Character(c) => {
                                 // Single printable char → residue editing if a cell is selected.
@@ -3718,7 +4107,7 @@ pub fn subscription(_app: &HelixViewApp) -> iced::Subscription<Message> {
 // ── View ──────────────────────────────────────────────────────────────────────
 
 fn tab_bar(app: &HelixViewApp) -> iced::widget::Row<'_, Message> {
-    use iced::widget::{button, row, text, horizontal_space};
+    use iced::widget::{button, horizontal_space, row, text};
     use iced::Length;
 
     let mut r = row![].spacing(2).padding([2, 4]);
@@ -3726,7 +4115,8 @@ fn tab_bar(app: &HelixViewApp) -> iced::widget::Row<'_, Message> {
         let active = i == app.active_tab;
         // Active tab's live document is in app.document, not the stale snapshot.
         let name = if active {
-            app.document.as_ref()
+            app.document
+                .as_ref()
                 .map(|d| d.name.clone())
                 .filter(|n| !n.is_empty())
                 .unwrap_or_else(|| "New Tab".to_string())
@@ -3735,7 +4125,11 @@ fn tab_bar(app: &HelixViewApp) -> iced::widget::Row<'_, Message> {
         };
         let tab_btn = button(text(name).size(11))
             .padding([3, 10])
-            .style(if active { button::primary } else { button::secondary })
+            .style(if active {
+                button::primary
+            } else {
+                button::secondary
+            })
             .on_press(Message::SwitchTab(i));
         let close_btn = button(text("×").size(11))
             .padding([3, 5])
@@ -3766,7 +4160,9 @@ pub fn view(app: &HelixViewApp) -> Element<'_, Message> {
         .width(Length::Fill)
         .height(iced::Length::Fixed(1.0))
         .style(|_| iced::widget::container::Style {
-            background: Some(iced::Background::Color(iced::Color::from_rgb(0.75, 0.76, 0.80))),
+            background: Some(iced::Background::Color(iced::Color::from_rgb(
+                0.75, 0.76, 0.80,
+            ))),
             ..Default::default()
         });
 
@@ -3789,7 +4185,9 @@ fn view_content(app: &HelixViewApp) -> Element<'_, Message> {
     }
     // Sequence raw editor takes top priority.
     if let (Some(idx), Some(content)) = (app.seq_editor_idx, &app.seq_editor_content) {
-        let seq_name = app.document.as_ref()
+        let seq_name = app
+            .document
+            .as_ref()
             .and_then(|aln| aln.sequences.get(idx))
             .map(|s| s.name.as_str())
             .unwrap_or("?");
@@ -3837,7 +4235,13 @@ fn view_content(app: &HelixViewApp) -> Element<'_, Message> {
     }
     // ABI trace view.
     if let Some(trace) = &app.trace_data {
-        return crate::views::trace_view(trace, app.trace_scroll, app.trace_zoom, app.trace_quant_ch_a, app.trace_quant_ch_b);
+        return crate::views::trace_view(
+            trace,
+            app.trace_scroll,
+            app.trace_zoom,
+            app.trace_quant_ch_a,
+            app.trace_quant_ch_b,
+        );
     }
     // Accessory app manager.
     if app.show_accessories {
@@ -3938,21 +4342,52 @@ fn view_content(app: &HelixViewApp) -> Element<'_, Message> {
             // When protein view is active, display the derived protein alignment.
             let display = app.protein_view_doc.as_ref().unwrap_or(aln);
             let pairing_pairs: Vec<crate::widgets::PairingPair> = if app.show_pairing_arcs {
-                app.mi_result.as_deref()
-                    .map(|mi| mi.top_covarying.iter()
-                        .filter(|p| p.cov_score >= app.pairing_arc_threshold)
-                        .take(60)
-                        .map(|p| (p.col_a, p.col_b, p.cov_score))
-                        .collect())
+                app.mi_result
+                    .as_deref()
+                    .map(|mi| {
+                        mi.top_covarying
+                            .iter()
+                            .filter(|p| p.cov_score >= app.pairing_arc_threshold)
+                            .take(60)
+                            .map(|p| (p.col_a, p.col_b, p.cov_score))
+                            .collect()
+                    })
                     .unwrap_or_default()
-            } else { vec![] };
-            let pairing_max = app.mi_result.as_deref()
-                .map(|mi| mi.top_covarying.first().map_or(1.0, |p| p.cov_score.max(1.0)))
+            } else {
+                vec![]
+            };
+            let pairing_max = app
+                .mi_result
+                .as_deref()
+                .map(|mi| {
+                    mi.top_covarying
+                        .first()
+                        .map_or(1.0, |p| p.cov_score.max(1.0))
+                })
                 .unwrap_or(1.0);
             let mi_available = app.mi_result.is_some();
-            let mi_stale = mi_available && app.mi_aln_ptr
-                .map_or(false, |p| app.document.as_ref().map_or(true, |a| Arc::as_ptr(a) as usize != p));
-            alignment_view(display, &app.view, &app.status, app.title_menu, &app.rename_input, app.show_restr_map, &app.color_table, app.computing.as_deref(), pairing_pairs, pairing_max, app.show_pairing_arcs, app.pairing_arc_threshold, mi_available, mi_stale)
+            let mi_stale = mi_available
+                && app.mi_aln_ptr.map_or(false, |p| {
+                    app.document
+                        .as_ref()
+                        .map_or(true, |a| Arc::as_ptr(a) as usize != p)
+                });
+            alignment_view(
+                display,
+                &app.view,
+                &app.status,
+                app.title_menu,
+                &app.rename_input,
+                app.show_restr_map,
+                &app.color_table,
+                app.computing.as_deref(),
+                pairing_pairs,
+                pairing_max,
+                app.show_pairing_arcs,
+                app.pairing_arc_threshold,
+                mi_available,
+                mi_stale,
+            )
         }
     };
     // Command palette overlays the base view.
@@ -3961,7 +4396,8 @@ fn view_content(app: &HelixViewApp) -> Element<'_, Message> {
         return stack![
             base,
             crate::views::command_palette(&app.palette_query, app.palette_selected),
-        ].into();
+        ]
+        .into();
     }
     base
 }
@@ -3970,7 +4406,9 @@ fn view_content(app: &HelixViewApp) -> Element<'_, Message> {
 
 fn parse_hex_color(s: &str) -> Option<helixview_core::color::Color> {
     let s = s.trim().trim_start_matches('#');
-    if s.len() != 6 { return None; }
+    if s.len() != 6 {
+        return None;
+    }
     let r = u8::from_str_radix(&s[0..2], 16).ok()?;
     let g = u8::from_str_radix(&s[2..4], 16).ok()?;
     let b = u8::from_str_radix(&s[4..6], 16).ok()?;
@@ -3980,13 +4418,35 @@ fn parse_hex_color(s: &str) -> Option<helixview_core::color::Color> {
 async fn pick_file() -> Option<std::path::PathBuf> {
     rfd::AsyncFileDialog::new()
         .set_title("Open sequence file")
-        .add_filter("Sequence files",
-            &["fasta", "fa", "fna", "faa", "ffn", "frn",
-              "gb", "gbk", "genbank", "bio",
-              "aln", "pir", "nbrf",
-              "phy", "phylip", "nex", "nexus", "nxs", "msf",
-              "embl", "dat",
-              "sto", "stockholm", "stk"])
+        .add_filter(
+            "Sequence files",
+            &[
+                "fasta",
+                "fa",
+                "fna",
+                "faa",
+                "ffn",
+                "frn",
+                "gb",
+                "gbk",
+                "genbank",
+                "bio",
+                "aln",
+                "pir",
+                "nbrf",
+                "phy",
+                "phylip",
+                "nex",
+                "nexus",
+                "nxs",
+                "msf",
+                "embl",
+                "dat",
+                "sto",
+                "stockholm",
+                "stk",
+            ],
+        )
         .add_filter("All files", &["*"])
         .pick_file()
         .await
@@ -3996,14 +4456,14 @@ async fn pick_file() -> Option<std::path::PathBuf> {
 async fn save_file_dialog() -> Option<std::path::PathBuf> {
     rfd::AsyncFileDialog::new()
         .set_title("Save alignment as…")
-        .add_filter("FASTA",        &["fasta", "fa", "fna", "faa"])
-        .add_filter("ClustalW",     &["aln"])
-        .add_filter("NBRF/PIR",     &["pir", "nbrf"])
-        .add_filter("Phylip",       &["phy", "phylip"])
-        .add_filter("NEXUS",        &["nex", "nexus"])
-        .add_filter("MSF (GCG)",    &["msf"])
-        .add_filter("EMBL",         &["embl"])
-        .add_filter("All files",    &["*"])
+        .add_filter("FASTA", &["fasta", "fa", "fna", "faa"])
+        .add_filter("ClustalW", &["aln"])
+        .add_filter("NBRF/PIR", &["pir", "nbrf"])
+        .add_filter("Phylip", &["phy", "phylip"])
+        .add_filter("NEXUS", &["nex", "nexus"])
+        .add_filter("MSF (GCG)", &["msf"])
+        .add_filter("EMBL", &["embl"])
+        .add_filter("All files", &["*"])
         .save_file()
         .await
         .map(|h| h.path().to_path_buf())
@@ -4022,7 +4482,10 @@ async fn save_svg_dialog() -> Option<std::path::PathBuf> {
 async fn pick_tree_file() -> Option<std::path::PathBuf> {
     rfd::AsyncFileDialog::new()
         .set_title("Open phylogenetic tree file")
-        .add_filter("Tree files", &["nwk", "newick", "nex", "nexus", "nxs", "tree", "tre"])
+        .add_filter(
+            "Tree files",
+            &["nwk", "newick", "nex", "nexus", "nxs", "tree", "tre"],
+        )
         .add_filter("All files", &["*"])
         .pick_file()
         .await
@@ -4100,16 +4563,15 @@ async fn save_pdf_dialog() -> Option<std::path::PathBuf> {
 }
 
 async fn export_pdf_task(
-    aln:         Arc<SeqAlignment>,
-    opts:        ShadedExportOptions,
-    col_start:   usize,
-    col_end:     usize,
+    aln: Arc<SeqAlignment>,
+    opts: ShadedExportOptions,
+    col_start: usize,
+    col_end: usize,
     color_table: Arc<ColorTable>,
-    path:        std::path::PathBuf,
+    path: std::path::PathBuf,
 ) -> Result<(), String> {
     tokio::task::spawn_blocking(move || {
-        let all_rows: std::collections::BTreeSet<usize> =
-            (0..aln.seq_count()).collect();
+        let all_rows: std::collections::BTreeSet<usize> = (0..aln.seq_count()).collect();
         let svg = crate::export_shaded::shaded_alignment_svg(
             &aln,
             &all_rows,
@@ -4123,8 +4585,7 @@ async fn export_pdf_task(
         );
         let mut usvg_opts = svg2pdf::usvg::Options::default();
         usvg_opts.fontdb_mut().load_system_fonts();
-        let tree = svg2pdf::usvg::Tree::from_str(&svg, &usvg_opts)
-            .map_err(|e| e.to_string())?;
+        let tree = svg2pdf::usvg::Tree::from_str(&svg, &usvg_opts).map_err(|e| e.to_string())?;
         let pdf = svg2pdf::to_pdf(
             &tree,
             svg2pdf::ConversionOptions::default(),
@@ -4154,9 +4615,11 @@ async fn compute_plasmid_re_sites(
     tokio::task::spawn_blocking(move || {
         let seq = match aln.sequences.get(seq_idx) {
             Some(s) => s,
-            None    => return vec![],
+            None => return vec![],
         };
-        let raw: Vec<u8> = seq.residues.iter()
+        let raw: Vec<u8> = seq
+            .residues
+            .iter()
             .filter(|&&b| !matches!(b, b'-' | b'.' | b'~'))
             .map(|&b| b.to_ascii_uppercase())
             .collect();
@@ -4177,7 +4640,7 @@ fn make_icon() -> Option<iced::window::Icon> {
 
     // Background: brand green (26, 133, 71)
     for i in 0..S * S {
-        px[i * 4]     = 26;
+        px[i * 4] = 26;
         px[i * 4 + 1] = 133;
         px[i * 4 + 2] = 71;
         px[i * 4 + 3] = 255;
@@ -4187,16 +4650,25 @@ fn make_icon() -> Option<iced::window::Icon> {
     let paint = |px: &mut Vec<u8>, col: usize, row: usize| {
         if col < S && row < S {
             let i = (row * S + col) * 4;
-            px[i] = 255; px[i+1] = 255; px[i+2] = 255; px[i+3] = 255;
+            px[i] = 255;
+            px[i + 1] = 255;
+            px[i + 2] = 255;
+            px[i + 3] = 255;
         }
     };
 
     for row in 5..27usize {
-        for col in 7..12usize  { paint(&mut px, col, row); } // left bar
-        for col in 20..25usize { paint(&mut px, col, row); } // right bar
+        for col in 7..12usize {
+            paint(&mut px, col, row);
+        } // left bar
+        for col in 20..25usize {
+            paint(&mut px, col, row);
+        } // right bar
     }
     for row in 13..19usize {
-        for col in 12..20usize { paint(&mut px, col, row); } // crossbar
+        for col in 12..20usize {
+            paint(&mut px, col, row);
+        } // crossbar
     }
 
     iced::window::icon::from_rgba(px, S as u32, S as u32).ok()
@@ -4242,7 +4714,8 @@ pub fn run() -> iced::Result {
 fn auto_save_session(app: &HelixViewApp) {
     // Skip auto-save for large alignments — serialising millions of residues
     // to JSON on the main thread causes multi-second UI freezes.
-    let total_residues: usize = app.document
+    let total_residues: usize = app
+        .document
         .as_ref()
         .map_or(0, |a| a.seq_count().saturating_mul(a.col_count()));
     if total_residues > 500_000 {
@@ -4270,24 +4743,26 @@ fn app_title(app: &HelixViewApp) -> String {
 /// Returns true if residue `r` matches IUPAC ambiguity code `p`.
 /// Both bytes should be uppercase ASCII. `p` = pattern byte, `r` = residue byte.
 fn iupac_matches(p: u8, r: u8) -> bool {
-    if p == r { return true; }
+    if p == r {
+        return true;
+    }
     // IUPAC nucleotide ambiguity codes and wildcards.
     // For amino acid letters that aren't ambiguity codes (F, E, I, L, P, Q, W, Y etc.)
     // the p == r check above handles exact matching; no special expansion needed.
     match p {
-        b'N' => matches!(r, b'A'|b'C'|b'G'|b'T'|b'U'|b'N'),
+        b'N' => matches!(r, b'A' | b'C' | b'G' | b'T' | b'U' | b'N'),
         // X matches any non-gap residue (used in both nucleotide and protein searches)
         b'X' => r.is_ascii_alphabetic(),
-        b'R' => matches!(r, b'A'|b'G'),
-        b'Y' => matches!(r, b'C'|b'T'|b'U'),
-        b'S' => matches!(r, b'G'|b'C'),
-        b'W' => matches!(r, b'A'|b'T'|b'U'),
-        b'K' => matches!(r, b'G'|b'T'|b'U'),
-        b'M' => matches!(r, b'A'|b'C'),
-        b'B' => matches!(r, b'C'|b'G'|b'T'|b'U'),
-        b'D' => matches!(r, b'A'|b'G'|b'T'|b'U'),
-        b'H' => matches!(r, b'A'|b'C'|b'T'|b'U'),
-        b'V' => matches!(r, b'A'|b'C'|b'G'),
+        b'R' => matches!(r, b'A' | b'G'),
+        b'Y' => matches!(r, b'C' | b'T' | b'U'),
+        b'S' => matches!(r, b'G' | b'C'),
+        b'W' => matches!(r, b'A' | b'T' | b'U'),
+        b'K' => matches!(r, b'G' | b'T' | b'U'),
+        b'M' => matches!(r, b'A' | b'C'),
+        b'B' => matches!(r, b'C' | b'G' | b'T' | b'U'),
+        b'D' => matches!(r, b'A' | b'G' | b'T' | b'U'),
+        b'H' => matches!(r, b'A' | b'C' | b'T' | b'U'),
+        b'V' => matches!(r, b'A' | b'C' | b'G'),
         // Any other letter (amino acid residues): exact match only (handled above).
         _ => false,
     }
@@ -4306,7 +4781,9 @@ fn sort_by_taxonomy(aln: &mut helixview_core::Alignment, level: usize) {
                 organism = rest.trim().to_string();
                 in_lineage = true;
             } else if in_lineage {
-                if !lineage_buf.is_empty() { lineage_buf.push(' '); }
+                if !lineage_buf.is_empty() {
+                    lineage_buf.push(' ');
+                }
                 lineage_buf.push_str(line.trim());
             }
         }
@@ -4327,10 +4804,16 @@ fn sort_by_taxonomy(aln: &mut helixview_core::Alignment, level: usize) {
     }
 
     aln.sequences.sort_by(|a, b| {
-        let ka = a.genbank.source.as_deref()
+        let ka = a
+            .genbank
+            .source
+            .as_deref()
             .map(|s| parse_source_key(s, level))
             .unwrap_or_default();
-        let kb = b.genbank.source.as_deref()
+        let kb = b
+            .genbank
+            .source
+            .as_deref()
             .map(|s| parse_source_key(s, level))
             .unwrap_or_default();
         ka.cmp(&kb)
@@ -4339,6 +4822,8 @@ fn sort_by_taxonomy(aln: &mut helixview_core::Alignment, level: usize) {
 
 /// Add a signed delta to a scroll position, clamping to `0..len`.
 fn clamp_add(pos: usize, delta: isize, len: usize) -> usize {
-    if len == 0 { return 0; }
+    if len == 0 {
+        return 0;
+    }
     ((pos as isize + delta).max(0) as usize).min(len - 1)
 }

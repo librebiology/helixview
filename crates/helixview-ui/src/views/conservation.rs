@@ -2,18 +2,18 @@
 
 use std::sync::Arc;
 
+use helixview_analysis::find_conserved_regions;
+use helixview_core::Alignment as SeqAlignment;
 use iced::{
     widget::{button, column, container, row, scrollable, slider, text},
     Alignment, Background, Border, Color, Element, Font, Length,
 };
-use helixview_core::Alignment as SeqAlignment;
-use helixview_analysis::find_conserved_regions;
 
 use crate::app::Message;
 use crate::theme::palette;
 
 pub fn conservation_view<'a>(
-    aln:       &'a Arc<SeqAlignment>,
+    aln: &'a Arc<SeqAlignment>,
     threshold: f64,
     min_width: usize,
 ) -> Element<'a, Message> {
@@ -27,9 +27,10 @@ pub fn conservation_view<'a>(
     let thresh_pct = (threshold * 100.0).round() as u32;
     let thresh_ctrl = row![
         text("Identity ≥").size(12).color(palette::TEXT_DIM),
-        slider(50u32..=100, thresh_pct,
-            |v| Message::ConservationThreshold(v as f64 / 100.0))
-            .width(120),
+        slider(50u32..=100, thresh_pct, |v| Message::ConservationThreshold(
+            v as f64 / 100.0
+        ))
+        .width(120),
         text(format!("{thresh_pct}%")).size(12).color(palette::TEXT),
     ]
     .spacing(6)
@@ -37,10 +38,13 @@ pub fn conservation_view<'a>(
 
     let width_ctrl = row![
         text("Min width").size(12).color(palette::TEXT_DIM),
-        slider(1u32..=50, min_width as u32,
-            |v| Message::ConservationMinWidth(v as usize))
-            .width(80),
-        text(format!("{min_width} cols")).size(12).color(palette::TEXT),
+        slider(1u32..=50, min_width as u32, |v| {
+            Message::ConservationMinWidth(v as usize)
+        })
+        .width(80),
+        text(format!("{min_width} cols"))
+            .size(12)
+            .color(palette::TEXT),
     ]
     .spacing(6)
     .align_y(Alignment::Center);
@@ -53,7 +57,8 @@ pub fn conservation_view<'a>(
             thresh_ctrl,
             width_ctrl,
             text(format!("{} region(s) found", regions.len()))
-                .size(12).color(palette::TEXT_DIM),
+                .size(12)
+                .color(palette::TEXT_DIM),
         ]
         .spacing(12)
         .align_y(Alignment::Center)
@@ -85,9 +90,9 @@ pub fn conservation_view<'a>(
         rows.push(
             container(
                 row![
-                    header_cell("Start",    70),
-                    header_cell("End",      70),
-                    header_cell("Width",    60),
+                    header_cell("Start", 70),
+                    header_cell("End", 70),
+                    header_cell("Width", 60),
                     header_cell("Identity", 80),
                     header_cell("Consensus (first 60 chars)", 500),
                 ]
@@ -103,11 +108,17 @@ pub fn conservation_view<'a>(
         );
 
         for (i, region) in regions.iter().enumerate() {
-            let cons_str: String = region.consensus.iter()
+            let cons_str: String = region
+                .consensus
+                .iter()
                 .take(60)
                 .map(|&b| b as char)
                 .collect();
-            let suffix = if region.consensus.len() > 60 { "…" } else { "" };
+            let suffix = if region.consensus.len() > 60 {
+                "…"
+            } else {
+                ""
+            };
 
             let identity_color = if region.avg_identity >= 0.95 {
                 Color::from_rgb(0.10, 0.55, 0.20)
@@ -132,8 +143,8 @@ pub fn conservation_view<'a>(
                 container(
                     row![
                         data_cell(format!("{}", region.start + 1), 70),
-                        data_cell(format!("{}", region.end + 1),   70),
-                        data_cell(format!("{}", region.width()),    60),
+                        data_cell(format!("{}", region.end + 1), 70),
+                        data_cell(format!("{}", region.width()), 60),
                         text(format!("{:.1}%", region.avg_identity * 100.0))
                             .size(12)
                             .color(identity_color)

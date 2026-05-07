@@ -1,7 +1,7 @@
 /// Default scoring parameters.
-pub const DEFAULT_MATCH:    i32 =  2;
+pub const DEFAULT_MATCH: i32 = 2;
 pub const DEFAULT_MISMATCH: i32 = -1;
-pub const DEFAULT_GAP:      i32 = -2;
+pub const DEFAULT_GAP: i32 = -2;
 
 /// Result of a pairwise alignment.
 #[derive(Debug, Clone)]
@@ -15,17 +15,23 @@ pub struct PairwiseResult {
 
 fn compute_identity(aligned_a: &[u8], aligned_b: &[u8]) -> f64 {
     let mut matches = 0usize;
-    let mut valid   = 0usize;
+    let mut valid = 0usize;
     for (&a, &b) in aligned_a.iter().zip(aligned_b.iter()) {
         let a_gap = a == b'-';
         let b_gap = b == b'-';
-        if a_gap && b_gap { continue; }
+        if a_gap && b_gap {
+            continue;
+        }
         valid += 1;
         if !a_gap && !b_gap && a.to_ascii_uppercase() == b.to_ascii_uppercase() {
             matches += 1;
         }
     }
-    if valid == 0 { 0.0 } else { matches as f64 / valid as f64 }
+    if valid == 0 {
+        0.0
+    } else {
+        matches as f64 / valid as f64
+    }
 }
 
 /// Global alignment (Needleman-Wunsch) with linear gap penalty.
@@ -44,18 +50,23 @@ pub fn needleman_wunsch(
     let mut dp = vec![vec![0i32; n + 1]; m + 1];
 
     // Initialise gap rows/columns
-    for i in 0..=m { dp[i][0] = i as i32 * gap_penalty; }
-    for j in 0..=n { dp[0][j] = j as i32 * gap_penalty; }
+    for i in 0..=m {
+        dp[i][0] = i as i32 * gap_penalty;
+    }
+    for j in 0..=n {
+        dp[0][j] = j as i32 * gap_penalty;
+    }
 
     for i in 1..=m {
         for j in 1..=n {
-            let diag = dp[i-1][j-1] + if a[i-1].to_ascii_uppercase() == b[j-1].to_ascii_uppercase() {
-                match_score
-            } else {
-                mismatch
-            };
-            let from_top  = dp[i-1][j] + gap_penalty;
-            let from_left = dp[i][j-1] + gap_penalty;
+            let diag = dp[i - 1][j - 1]
+                + if a[i - 1].to_ascii_uppercase() == b[j - 1].to_ascii_uppercase() {
+                    match_score
+                } else {
+                    mismatch
+                };
+            let from_top = dp[i - 1][j] + gap_penalty;
+            let from_left = dp[i][j - 1] + gap_penalty;
             dp[i][j] = diag.max(from_top).max(from_left);
         }
     }
@@ -69,26 +80,27 @@ pub fn needleman_wunsch(
     let mut j = n;
     while i > 0 || j > 0 {
         if i > 0 && j > 0 {
-            let diag_score = dp[i-1][j-1] + if a[i-1].to_ascii_uppercase() == b[j-1].to_ascii_uppercase() {
-                match_score
-            } else {
-                mismatch
-            };
+            let diag_score = dp[i - 1][j - 1]
+                + if a[i - 1].to_ascii_uppercase() == b[j - 1].to_ascii_uppercase() {
+                    match_score
+                } else {
+                    mismatch
+                };
             if dp[i][j] == diag_score {
-                aligned_a.push(a[i-1]);
-                aligned_b.push(b[j-1]);
+                aligned_a.push(a[i - 1]);
+                aligned_b.push(b[j - 1]);
                 i -= 1;
                 j -= 1;
                 continue;
             }
         }
-        if i > 0 && dp[i][j] == dp[i-1][j] + gap_penalty {
-            aligned_a.push(a[i-1]);
+        if i > 0 && dp[i][j] == dp[i - 1][j] + gap_penalty {
+            aligned_a.push(a[i - 1]);
             aligned_b.push(b'-');
             i -= 1;
         } else {
             aligned_a.push(b'-');
-            aligned_b.push(b[j-1]);
+            aligned_b.push(b[j - 1]);
             j -= 1;
         }
     }
@@ -97,7 +109,12 @@ pub fn needleman_wunsch(
     aligned_b.reverse();
 
     let identity = compute_identity(&aligned_a, &aligned_b);
-    PairwiseResult { aligned_a, aligned_b, score, identity }
+    PairwiseResult {
+        aligned_a,
+        aligned_b,
+        score,
+        identity,
+    }
 }
 
 /// Local alignment (Smith-Waterman) with linear gap penalty.
@@ -127,13 +144,14 @@ pub fn smith_waterman(
 
     for i in 1..=m {
         for j in 1..=n {
-            let diag = dp[i-1][j-1] + if a[i-1].to_ascii_uppercase() == b[j-1].to_ascii_uppercase() {
-                match_score
-            } else {
-                mismatch
-            };
-            let from_top  = dp[i-1][j] + gap_penalty;
-            let from_left = dp[i][j-1] + gap_penalty;
+            let diag = dp[i - 1][j - 1]
+                + if a[i - 1].to_ascii_uppercase() == b[j - 1].to_ascii_uppercase() {
+                    match_score
+                } else {
+                    mismatch
+                };
+            let from_top = dp[i - 1][j] + gap_penalty;
+            let from_left = dp[i][j - 1] + gap_penalty;
             dp[i][j] = 0.max(diag).max(from_top).max(from_left);
             if dp[i][j] > max_score {
                 max_score = dp[i][j];
@@ -151,26 +169,27 @@ pub fn smith_waterman(
 
     while i > 0 && j > 0 && dp[i][j] > 0 {
         if i > 0 && j > 0 {
-            let diag_score = dp[i-1][j-1] + if a[i-1].to_ascii_uppercase() == b[j-1].to_ascii_uppercase() {
-                match_score
-            } else {
-                mismatch
-            };
+            let diag_score = dp[i - 1][j - 1]
+                + if a[i - 1].to_ascii_uppercase() == b[j - 1].to_ascii_uppercase() {
+                    match_score
+                } else {
+                    mismatch
+                };
             if dp[i][j] == diag_score {
-                aligned_a.push(a[i-1]);
-                aligned_b.push(b[j-1]);
+                aligned_a.push(a[i - 1]);
+                aligned_b.push(b[j - 1]);
                 i -= 1;
                 j -= 1;
                 continue;
             }
         }
-        if i > 0 && dp[i][j] == dp[i-1][j] + gap_penalty {
-            aligned_a.push(a[i-1]);
+        if i > 0 && dp[i][j] == dp[i - 1][j] + gap_penalty {
+            aligned_a.push(a[i - 1]);
             aligned_b.push(b'-');
             i -= 1;
         } else {
             aligned_a.push(b'-');
-            aligned_b.push(b[j-1]);
+            aligned_b.push(b[j - 1]);
             j -= 1;
         }
     }
@@ -179,7 +198,12 @@ pub fn smith_waterman(
     aligned_b.reverse();
 
     let identity = compute_identity(&aligned_a, &aligned_b);
-    PairwiseResult { aligned_a, aligned_b, score: max_score, identity }
+    PairwiseResult {
+        aligned_a,
+        aligned_b,
+        score: max_score,
+        identity,
+    }
 }
 
 #[cfg(test)]

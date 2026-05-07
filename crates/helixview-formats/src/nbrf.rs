@@ -1,13 +1,13 @@
+use crate::{FormatError, Result};
 use helixview_core::{
     alignment::Alignment,
     sequence::{Sequence, SequenceType},
 };
-use crate::{FormatError, Result};
 use std::path::Path;
 
 pub fn parse_bytes(data: &[u8], name: &str) -> Result<Alignment> {
-    let text = std::str::from_utf8(data)
-        .map_err(|e| FormatError::Parse(format!("Invalid UTF-8: {e}")))?;
+    let text =
+        std::str::from_utf8(data).map_err(|e| FormatError::Parse(format!("Invalid UTF-8: {e}")))?;
     parse_str(text, name)
 }
 
@@ -66,7 +66,9 @@ pub fn parse_str(text: &str, name: &str) -> Result<Alignment> {
     }
 
     if aln.is_empty() {
-        return Err(FormatError::Parse("No sequences found in NBRF/PIR data".into()));
+        return Err(FormatError::Parse(
+            "No sequences found in NBRF/PIR data".into(),
+        ));
     }
 
     Ok(aln)
@@ -102,8 +104,8 @@ pub fn to_string(aln: &Alignment) -> Result<String> {
         let prefix = type_to_prefix(&seq.seq_type);
         out.push_str(&format!(">{};{}\n", prefix, seq.name));
         out.push_str(&format!("{}\n", seq.name));
-        let res_str = std::str::from_utf8(&seq.residues)
-            .map_err(|e| FormatError::Parse(e.to_string()))?;
+        let res_str =
+            std::str::from_utf8(&seq.residues).map_err(|e| FormatError::Parse(e.to_string()))?;
         out.push_str(res_str);
         out.push_str("*\n\n");
     }
@@ -123,12 +125,18 @@ mod tests {
     #[test]
     fn protein_type_detected() {
         let aln = super::parse_str(SAMPLE, "test").unwrap();
-        assert!(matches!(aln.sequences[0].seq_type, helixview_core::SequenceType::Protein));
+        assert!(matches!(
+            aln.sequences[0].seq_type,
+            helixview_core::SequenceType::Protein
+        ));
     }
 
     #[test]
     fn dna_type_detected() {
         let aln = super::parse_str(SAMPLE, "test").unwrap();
-        assert!(matches!(aln.sequences[1].seq_type, helixview_core::SequenceType::Dna));
+        assert!(matches!(
+            aln.sequences[1].seq_type,
+            helixview_core::SequenceType::Dna
+        ));
     }
 }

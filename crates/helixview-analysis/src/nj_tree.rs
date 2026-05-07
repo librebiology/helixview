@@ -3,8 +3,8 @@
 //! Saitou & Nei (1987) algorithm. Distances are derived from pairwise sequence
 //! identity: d(i,j) = 1 − identity(i,j).
 
-use helixview_core::{Alignment, PhyloTree, TreeNode};
 use crate::identity::identity_matrix;
+use helixview_core::{Alignment, PhyloTree, TreeNode};
 
 /// Build a neighbour-joining `PhyloTree` from `aln`.
 ///
@@ -37,12 +37,14 @@ fn neighbour_joining(dist: &[Vec<f64>], names: &[String]) -> PhyloTree {
         return PhyloTree::new(TreeNode::new_leaf(&names[0]));
     }
     if n == 2 {
-        let mut left  = TreeNode::new_leaf(&names[0]);
+        let mut left = TreeNode::new_leaf(&names[0]);
         let mut right = TreeNode::new_leaf(&names[1]);
-        left.branch_length  = Some((dist[0][1] / 2.0).max(0.0));
+        left.branch_length = Some((dist[0][1] / 2.0).max(0.0));
         right.branch_length = Some((dist[0][1] / 2.0).max(0.0));
         return PhyloTree::new(TreeNode {
-            name: String::new(), branch_length: None, support: None,
+            name: String::new(),
+            branch_length: None,
+            support: None,
             children: vec![left, right],
         });
     }
@@ -50,8 +52,8 @@ fn neighbour_joining(dist: &[Vec<f64>], names: &[String]) -> PhyloTree {
     // We allocate a flat (2n) × (2n) distance matrix that grows with new nodes.
     let cap = 2 * n + 4;
     let mut d = vec![0.0f64; cap * cap];
-    let get  = |d: &[f64],     i: usize, j: usize| d[i * cap + j];
-    let set  = |d: &mut Vec<f64>, i: usize, j: usize, v: f64| d[i * cap + j] = v;
+    let get = |d: &[f64], i: usize, j: usize| d[i * cap + j];
+    let set = |d: &mut Vec<f64>, i: usize, j: usize, v: f64| d[i * cap + j] = v;
 
     for i in 0..n {
         for j in 0..n {
@@ -72,36 +74,35 @@ fn neighbour_joining(dist: &[Vec<f64>], names: &[String]) -> PhyloTree {
         let na = active.len() as f64;
 
         // Row sums for Q formula.
-        let row_sum: Vec<f64> = active.iter()
+        let row_sum: Vec<f64> = active
+            .iter()
             .map(|&i| active.iter().map(|&j| get(&d, i, j)).sum::<f64>())
             .collect();
 
         // Find (i, j) that minimises Q(i,j) = (n−2)·d(i,j) − r(i) − r(j).
-        let mut best_q  = f64::MAX;
+        let mut best_q = f64::MAX;
         let mut best_ai = 0usize;
         let mut best_aj = 1usize;
 
         for ai in 0..active.len() {
             for aj in (ai + 1)..active.len() {
-                let q = (na - 2.0) * get(&d, active[ai], active[aj])
-                    - row_sum[ai] - row_sum[aj];
+                let q = (na - 2.0) * get(&d, active[ai], active[aj]) - row_sum[ai] - row_sum[aj];
                 if q < best_q {
-                    best_q  = q;
+                    best_q = q;
                     best_ai = ai;
                     best_aj = aj;
                 }
             }
         }
 
-        let i   = active[best_ai];
-        let j   = active[best_aj];
+        let i = active[best_ai];
+        let j = active[best_aj];
         let dij = get(&d, i, j);
 
         // Branch lengths from new node u to i and j.
-        let n2  = (active.len() as f64 - 2.0).max(1.0);
-        let li  = (0.5 * dij + (row_sum[best_ai] - row_sum[best_aj]) / (2.0 * n2))
-            .max(0.0);
-        let lj  = (dij - li).max(0.0);
+        let n2 = (active.len() as f64 - 2.0).max(1.0);
+        let li = (0.5 * dij + (row_sum[best_ai] - row_sum[best_aj]) / (2.0 * n2)).max(0.0);
+        let lj = (dij - li).max(0.0);
 
         // Create internal node u.
         let u = next_internal;
@@ -112,13 +113,17 @@ fn neighbour_joining(dist: &[Vec<f64>], names: &[String]) -> PhyloTree {
         ci.branch_length = Some(li);
         cj.branch_length = Some(lj);
         nodes[u] = Some(TreeNode {
-            name: String::new(), branch_length: None, support: None,
+            name: String::new(),
+            branch_length: None,
+            support: None,
             children: vec![ci, cj],
         });
 
         // d(u, k) = (d(i,k) + d(j,k) − d(i,j)) / 2  for k ≠ i, j.
         for &k in &active {
-            if k == i || k == j { continue; }
+            if k == i || k == j {
+                continue;
+            }
             let duk = ((get(&d, i, k) + get(&d, j, k) - dij) / 2.0).max(0.0);
             set(&mut d, u, k, duk);
             set(&mut d, k, u, duk);
@@ -139,7 +144,9 @@ fn neighbour_joining(dist: &[Vec<f64>], names: &[String]) -> PhyloTree {
     cj.branch_length = Some((dij / 2.0).max(0.0));
 
     PhyloTree::new(TreeNode {
-        name: String::new(), branch_length: None, support: None,
+        name: String::new(),
+        branch_length: None,
+        support: None,
         children: vec![ci, cj],
     })
 }

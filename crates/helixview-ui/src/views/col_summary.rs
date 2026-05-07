@@ -2,11 +2,11 @@
 
 use std::sync::Arc;
 
-use iced::{
-    Background, Border, Color, Element, Font, Length,
-    widget::{button, column, container, row, scrollable, text},
-};
 use helixview_core::Alignment;
+use iced::{
+    widget::{button, column, container, row, scrollable, text},
+    Background, Border, Color, Element, Font, Length,
+};
 
 use crate::app::Message;
 use crate::theme::palette;
@@ -50,8 +50,12 @@ pub fn col_summary_view<'a>(aln: &'a Arc<Alignment>) -> Element<'a, Message> {
     if ncols == 0 {
         return column![
             header,
-            container(text("No alignment loaded.").size(12).color(palette::TEXT_DIM))
-                .padding([12, 10]),
+            container(
+                text("No alignment loaded.")
+                    .size(12)
+                    .color(palette::TEXT_DIM)
+            )
+            .padding([12, 10]),
         ]
         .into();
     }
@@ -61,19 +65,29 @@ pub fn col_summary_view<'a>(aln: &'a Arc<Alignment>) -> Element<'a, Message> {
     // Column header
     let mut head_cells: Vec<Element<'a, Message>> = Vec::new();
     head_cells.push(
-        container(text("Residue").size(10).color(palette::TEXT_DIM).font(Font::MONOSPACE))
-            .width(60)
-            .padding([2, 4])
-            .style(header_style())
-            .into()
+        container(
+            text("Residue")
+                .size(10)
+                .color(palette::TEXT_DIM)
+                .font(Font::MONOSPACE),
+        )
+        .width(60)
+        .padding([2, 4])
+        .style(header_style())
+        .into(),
     );
     for c in 0..show_cols {
         head_cells.push(
-            container(text(format!("{}", c + 1)).size(9).color(palette::TEXT_DIM).font(Font::MONOSPACE))
-                .width(32)
-                .padding([2, 2])
-                .style(header_style())
-                .into()
+            container(
+                text(format!("{}", c + 1))
+                    .size(9)
+                    .color(palette::TEXT_DIM)
+                    .font(Font::MONOSPACE),
+            )
+            .width(32)
+            .padding([2, 2])
+            .style(header_style())
+            .into(),
         );
     }
     let col_header: Element<'a, Message> = row(head_cells).into();
@@ -106,17 +120,25 @@ pub fn col_summary_view<'a>(aln: &'a Arc<Alignment>) -> Element<'a, Message> {
             .width(60)
             .padding([2, 4])
             .style(header_style())
-            .into()
+            .into(),
         );
 
         for c in 0..show_cols {
-            let count = (0..nrows).filter(|&r| {
-                aln.sequences[r].residues.get(c)
-                    .map(|&b| b.to_ascii_uppercase() == res)
-                    .unwrap_or(false)
-            }).count();
+            let count = (0..nrows)
+                .filter(|&r| {
+                    aln.sequences[r]
+                        .residues
+                        .get(c)
+                        .map(|&b| b.to_ascii_uppercase() == res)
+                        .unwrap_or(false)
+                })
+                .count();
 
-            let pct = if nrows > 0 { count as f32 / nrows as f32 } else { 0.0 };
+            let pct = if nrows > 0 {
+                count as f32 / nrows as f32
+            } else {
+                0.0
+            };
             let intensity = pct.clamp(0.0, 1.0);
             let bg = Color {
                 r: 1.0 - intensity * 0.7,
@@ -125,12 +147,20 @@ pub fn col_summary_view<'a>(aln: &'a Arc<Alignment>) -> Element<'a, Message> {
                 a: 1.0,
             };
 
-            let label = if count > 0 { format!("{}", count) } else { String::new() };
+            let label = if count > 0 {
+                format!("{}", count)
+            } else {
+                String::new()
+            };
             cells.push(
                 container(
                     text(label)
                         .size(9)
-                        .color(if pct > 0.5 { Color::WHITE } else { Color::BLACK })
+                        .color(if pct > 0.5 {
+                            Color::WHITE
+                        } else {
+                            Color::BLACK
+                        })
                         .font(Font::MONOSPACE),
                 )
                 .width(32)
@@ -139,7 +169,7 @@ pub fn col_summary_view<'a>(aln: &'a Arc<Alignment>) -> Element<'a, Message> {
                     background: Some(Background::Color(bg)),
                     ..Default::default()
                 })
-                .into()
+                .into(),
             );
         }
 
@@ -149,19 +179,42 @@ pub fn col_summary_view<'a>(aln: &'a Arc<Alignment>) -> Element<'a, Message> {
     // Gap row
     let mut gap_cells: Vec<Element<'a, Message>> = Vec::new();
     gap_cells.push(
-        container(text("gap").size(10).color(palette::TEXT_DIM).font(Font::MONOSPACE))
-            .width(60).padding([2, 4]).style(header_style()).into()
+        container(
+            text("gap")
+                .size(10)
+                .color(palette::TEXT_DIM)
+                .font(Font::MONOSPACE),
+        )
+        .width(60)
+        .padding([2, 4])
+        .style(header_style())
+        .into(),
     );
     for c in 0..show_cols {
-        let count = (0..nrows).filter(|&r| {
-            aln.sequences[r].residues.get(c)
-                .map(|&b| matches!(b, b'-'|b'~'|b'.'))
-                .unwrap_or(true)
-        }).count();
-        let label = if count > 0 { format!("{}", count) } else { String::new() };
+        let count = (0..nrows)
+            .filter(|&r| {
+                aln.sequences[r]
+                    .residues
+                    .get(c)
+                    .map(|&b| matches!(b, b'-' | b'~' | b'.'))
+                    .unwrap_or(true)
+            })
+            .count();
+        let label = if count > 0 {
+            format!("{}", count)
+        } else {
+            String::new()
+        };
         gap_cells.push(
-            container(text(label).size(9).color(palette::TEXT_DIM).font(Font::MONOSPACE))
-                .width(32).padding([2, 2]).into()
+            container(
+                text(label)
+                    .size(9)
+                    .color(palette::TEXT_DIM)
+                    .font(Font::MONOSPACE),
+            )
+            .width(32)
+            .padding([2, 2])
+            .into(),
         );
     }
     table_rows.push(row(gap_cells).into());
@@ -169,7 +222,8 @@ pub fn col_summary_view<'a>(aln: &'a Arc<Alignment>) -> Element<'a, Message> {
     let note: Element<'a, Message> = if ncols > MAX_COLS {
         container(
             text(format!("(showing first {MAX_COLS} of {ncols} columns)"))
-                .size(11).color(palette::TEXT_DIM),
+                .size(11)
+                .color(palette::TEXT_DIM),
         )
         .padding([4, 10])
         .into()
@@ -182,7 +236,10 @@ pub fn col_summary_view<'a>(aln: &'a Arc<Alignment>) -> Element<'a, Message> {
     column![
         header,
         scrollable(
-            column![note, body].spacing(4).padding([4, 8]).width(Length::Fill)
+            column![note, body]
+                .spacing(4)
+                .padding([4, 8])
+                .width(Length::Fill)
         )
         .width(Length::Fill)
         .height(Length::Fill),

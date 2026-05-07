@@ -1,43 +1,59 @@
 //! Keyboard shortcut reference panel.
 
-use iced::{
-    widget::{button, column, container, row, scrollable, text, horizontal_space},
-    Alignment, Color, Element, Length,
-};
 use crate::app::Message;
 use crate::theme::palette;
+use iced::{
+    widget::{button, column, container, horizontal_space, row, scrollable, text},
+    Alignment, Color, Element, Length,
+};
 
 const SHORTCUTS: &[(&str, &str, &str)] = &[
     // Category, Key, Action
-    ("File",        "Ctrl+O",           "Open file"),
-    ("File",        "Ctrl+S",           "Save file"),
-    ("File",        "Ctrl+Shift+S",     "Save project"),
-    ("File",        "Ctrl+Shift+O",     "Open project"),
-    ("File",        "Ctrl+T",           "New tab"),
-    ("File",        "Ctrl+W",           "Close tab"),
-    ("Edit",        "Ctrl+Z",           "Undo"),
-    ("Edit",        "Ctrl+Y",           "Redo"),
-    ("Edit",        "Space",            "Insert gap at cursor"),
-    ("Edit",        "Shift+Space",      "Insert gap in all other sequences"),
-    ("Edit",        "Backspace",        "Delete gap before cursor"),
-    ("Edit",        "Shift+Backspace",  "Delete gap before cursor in all other sequences"),
-    ("Navigate",    "Arrow keys",       "Scroll alignment / move edit cursor"),
-    ("Navigate",    "Ctrl+End",         "Scroll to last column"),
-    ("Navigate",    "Ctrl+F",           "Toggle search bar"),
-    ("Navigate",    "F3 / Enter",       "Jump to next search match"),
-    ("Navigate",    "Shift+F3",         "Jump to previous search match"),
-    ("Navigate",    "Escape",           "Close search / cancel selection"),
-    ("Selection",   "Click",            "Select sequence row"),
-    ("Selection",   "Shift+Click",      "Range select rows"),
-    ("Selection",   "Ctrl+Click",       "Toggle row in selection"),
-    ("Selection",   "Ctrl+A",           "Select all sequences"),
-    ("Selection",   "Ctrl+D",           "Deselect all"),
-    ("Selection",   "Click ruler",      "Select column range"),
-    ("Zoom",        "Ctrl++",           "Zoom in"),
-    ("Zoom",        "Ctrl+−",           "Zoom out"),
-    ("Zoom",        "Ctrl+0",           "Reset zoom"),
-    ("Analysis",    "Toolbar → Analysis", "Composition, Tm, ORFs, BLAST, Tree…"),
-    ("View",        "Toolbar → View",   "Color scheme, Export SVG, Shaded Fig…"),
+    ("File", "Ctrl+O", "Open file"),
+    ("File", "Ctrl+S", "Save file"),
+    ("File", "Ctrl+Shift+S", "Save project"),
+    ("File", "Ctrl+Shift+O", "Open project"),
+    ("File", "Ctrl+T", "New tab"),
+    ("File", "Ctrl+W", "Close tab"),
+    ("Edit", "Ctrl+Z", "Undo"),
+    ("Edit", "Ctrl+Y", "Redo"),
+    ("Edit", "Space", "Insert gap at cursor"),
+    ("Edit", "Shift+Space", "Insert gap in all other sequences"),
+    ("Edit", "Backspace", "Delete gap before cursor"),
+    (
+        "Edit",
+        "Shift+Backspace",
+        "Delete gap before cursor in all other sequences",
+    ),
+    (
+        "Navigate",
+        "Arrow keys",
+        "Scroll alignment / move edit cursor",
+    ),
+    ("Navigate", "Ctrl+End", "Scroll to last column"),
+    ("Navigate", "Ctrl+F", "Toggle search bar"),
+    ("Navigate", "F3 / Enter", "Jump to next search match"),
+    ("Navigate", "Shift+F3", "Jump to previous search match"),
+    ("Navigate", "Escape", "Close search / cancel selection"),
+    ("Selection", "Click", "Select sequence row"),
+    ("Selection", "Shift+Click", "Range select rows"),
+    ("Selection", "Ctrl+Click", "Toggle row in selection"),
+    ("Selection", "Ctrl+A", "Select all sequences"),
+    ("Selection", "Ctrl+D", "Deselect all"),
+    ("Selection", "Click ruler", "Select column range"),
+    ("Zoom", "Ctrl++", "Zoom in"),
+    ("Zoom", "Ctrl+−", "Zoom out"),
+    ("Zoom", "Ctrl+0", "Reset zoom"),
+    (
+        "Analysis",
+        "Toolbar → Analysis",
+        "Composition, Tm, ORFs, BLAST, Tree…",
+    ),
+    (
+        "View",
+        "Toolbar → View",
+        "Color scheme, Export SVG, Shaded Fig…",
+    ),
 ];
 
 pub fn help_view<'a>() -> Element<'a, Message> {
@@ -54,8 +70,9 @@ pub fn help_view<'a>() -> Element<'a, Message> {
     let hdr = row![
         cell_hdr("Category", 110.0),
         cell_hdr("Shortcut", 190.0),
-        cell_hdr("Action",   340.0),
-    ].spacing(1);
+        cell_hdr("Action", 340.0),
+    ]
+    .spacing(1);
 
     let mut rows_col = column![hdr].spacing(0);
     let mut last_cat = "";
@@ -70,17 +87,16 @@ pub fn help_view<'a>() -> Element<'a, Message> {
         rows_col = rows_col.push(
             row![
                 cat_cell,
-                cell_data(key,    190.0, shade, false),
+                cell_data(key, 190.0, shade, false),
                 cell_data(action, 340.0, shade, false),
-            ].spacing(1)
+            ]
+            .spacing(1),
         );
     }
 
-    let content: Element<'a, Message> = scrollable(
-        column![rows_col].padding(8)
-    )
-    .height(Length::Fill)
-    .into();
+    let content: Element<'a, Message> = scrollable(column![rows_col].padding(8))
+        .height(Length::Fill)
+        .into();
 
     column![toolbar, content]
         .width(Length::Fill)
@@ -100,7 +116,11 @@ fn cell_hdr<'a>(label: &str, w: f32) -> Element<'a, Message> {
 }
 
 fn cell_data<'a>(label: &str, w: f32, shade: bool, bold: bool) -> Element<'a, Message> {
-    let bg = if shade { Color::from_rgb(0.97, 0.97, 0.99) } else { Color::WHITE };
+    let bg = if shade {
+        Color::from_rgb(0.97, 0.97, 0.99)
+    } else {
+        Color::WHITE
+    };
     let t = if bold {
         text(label.to_string()).size(11).color(palette::TEXT)
     } else {

@@ -1,18 +1,18 @@
 //! Accessory app manager — configure and run external CLI tools.
 
+use crate::app::{AccessoryApp, Message};
+use crate::theme::palette;
 use iced::{
     widget::{button, column, container, row, scrollable, text, text_input},
     Alignment, Background, Border, Color, Element, Length,
 };
-use crate::app::{AccessoryApp, Message};
-use crate::theme::palette;
 
 pub fn accessories_view<'a>(
-    apps:             &'a [AccessoryApp],
-    editing:          Option<usize>,
-    edit_name:        &'a str,
-    edit_cmd:         &'a str,
-    has_document:     bool,
+    apps: &'a [AccessoryApp],
+    editing: Option<usize>,
+    edit_name: &'a str,
+    edit_cmd: &'a str,
+    has_document: bool,
 ) -> Element<'a, Message> {
     let back_btn = button(text("< Back").size(12))
         .padding([4, 10])
@@ -23,7 +23,8 @@ pub fn accessories_view<'a>(
             back_btn,
             text("Accessory Apps").size(14).color(palette::TEXT),
             iced::widget::horizontal_space(),
-            button(text("+ New").size(12)).padding([4, 10])
+            button(text("+ New").size(12))
+                .padding([4, 10])
                 .on_press(Message::NewAccessory),
         ]
         .spacing(10)
@@ -38,7 +39,12 @@ pub fn accessories_view<'a>(
     .width(Length::Fill);
 
     // ── Installed apps list ───────────────────────────────────────────────────
-    let mut list = column![].spacing(4).padding(iced::Padding { top: 8.0, right: 8.0, bottom: 0.0, left: 8.0 });
+    let mut list = column![].spacing(4).padding(iced::Padding {
+        top: 8.0,
+        right: 8.0,
+        bottom: 0.0,
+        left: 8.0,
+    });
 
     if apps.is_empty() {
         list = list.push(
@@ -50,36 +56,39 @@ pub fn accessories_view<'a>(
 
     for (i, app_cfg) in apps.iter().enumerate() {
         let name_label = text(app_cfg.name.clone()).size(13).color(palette::TEXT);
-        let cmd_label  = text(
-            if app_cfg.command.len() > 60 {
-                format!("{}…", &app_cfg.command[..59])
-            } else {
-                app_cfg.command.clone()
-            }
-        )
+        let cmd_label = text(if app_cfg.command.len() > 60 {
+            format!("{}…", &app_cfg.command[..59])
+        } else {
+            app_cfg.command.clone()
+        })
         .size(11)
         .color(palette::TEXT_DIM)
         .font(iced::Font::MONOSPACE);
 
         let run_btn = if has_document {
-            button(text("Run").size(11)).padding([3, 8])
+            button(text("Run").size(11))
+                .padding([3, 8])
                 .on_press(Message::RunAccessory(i))
         } else {
             button(text("Run").size(11)).padding([3, 8])
         };
 
-        let edit_btn = button(text("Edit").size(11)).padding([3, 8])
+        let edit_btn = button(text("Edit").size(11))
+            .padding([3, 8])
             .style(button::secondary)
             .on_press(Message::EditAccessory(i));
 
-        let del_btn = button(text("Delete").size(11)).padding([3, 8])
+        let del_btn = button(text("Delete").size(11))
+            .padding([3, 8])
             .style(button::secondary)
             .on_press(Message::DeleteAccessory(i));
 
         list = list.push(
             container(
                 row![
-                    column![name_label, cmd_label].spacing(2).width(Length::Fill),
+                    column![name_label, cmd_label]
+                        .spacing(2)
+                        .width(Length::Fill),
                     run_btn,
                     edit_btn,
                     del_btn,
@@ -103,10 +112,16 @@ pub fn accessories_view<'a>(
 
     // ── Edit panel ────────────────────────────────────────────────────────────
     let edit_panel: Element<Message> = if editing.is_some() || edit_name != "" || edit_cmd != "" {
-        let title_txt = if editing.is_some() { "Edit Accessory" } else { "New Accessory" };
-        let save_btn = button(text("Save").size(12)).padding([4, 12])
+        let title_txt = if editing.is_some() {
+            "Edit Accessory"
+        } else {
+            "New Accessory"
+        };
+        let save_btn = button(text("Save").size(12))
+            .padding([4, 12])
             .on_press(Message::SaveAccessory);
-        let cancel_btn = button(text("Cancel").size(12)).padding([4, 10])
+        let cancel_btn = button(text("Cancel").size(12))
+            .padding([4, 10])
             .style(button::secondary)
             .on_press(Message::CloseAccessories);
 
@@ -131,7 +146,8 @@ pub fn accessories_view<'a>(
                 text("Command template:").size(11).color(palette::TEXT_DIM),
                 cmd_input,
                 text("{input} = temp FASTA of selected (or all) sequences")
-                    .size(10).color(palette::TEXT_DIM),
+                    .size(10)
+                    .color(palette::TEXT_DIM),
                 row![save_btn, cancel_btn].spacing(8),
             ]
             .spacing(6),
@@ -152,11 +168,9 @@ pub fn accessories_view<'a>(
         iced::widget::horizontal_space().into()
     };
 
-    let content = scrollable(
-        column![list, container(edit_panel).padding([8, 8])].spacing(0),
-    )
-    .width(Length::Fill)
-    .height(Length::Fill);
+    let content = scrollable(column![list, container(edit_panel).padding([8, 8])].spacing(0))
+        .width(Length::Fill)
+        .height(Length::Fill);
 
     column![toolbar, content]
         .width(Length::Fill)

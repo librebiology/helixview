@@ -1,13 +1,13 @@
+use crate::{FormatError, Result};
 use helixview_core::{
     alignment::Alignment,
     sequence::{Sequence, SequenceType},
 };
-use crate::{FormatError, Result};
 use std::path::Path;
 
 pub fn parse_bytes(data: &[u8], name: &str) -> Result<Alignment> {
-    let text = std::str::from_utf8(data)
-        .map_err(|e| FormatError::Parse(format!("Invalid UTF-8: {e}")))?;
+    let text =
+        std::str::from_utf8(data).map_err(|e| FormatError::Parse(format!("Invalid UTF-8: {e}")))?;
     parse_str(text, name)
 }
 
@@ -37,13 +37,14 @@ pub fn parse_str(text: &str, name: &str) -> Result<Alignment> {
     // Check for #NEXUS header (case-insensitive, skip BOM / leading whitespace)
     let trimmed = text.trim_start_matches('\u{feff}').trim_start();
     if !trimmed[..trimmed.len().min(6)].eq_ignore_ascii_case("#NEXUS") {
-        return Err(FormatError::Parse("Not a NEXUS file: missing #NEXUS header".into()));
+        return Err(FormatError::Parse(
+            "Not a NEXUS file: missing #NEXUS header".into(),
+        ));
     }
 
     let mut seq_type = SequenceType::NucleicAcid;
     let mut order: Vec<String> = Vec::new();
-    let mut residues: std::collections::HashMap<String, Vec<u8>> =
-        std::collections::HashMap::new();
+    let mut residues: std::collections::HashMap<String, Vec<u8>> = std::collections::HashMap::new();
 
     // State machine
     enum State {
@@ -115,10 +116,10 @@ pub fn parse_str(text: &str, name: &str) -> Result<Alignment> {
         i += 1;
     }
 
-
-
     if order.is_empty() {
-        return Err(FormatError::Parse("No sequences found in NEXUS MATRIX".into()));
+        return Err(FormatError::Parse(
+            "No sequences found in NEXUS MATRIX".into(),
+        ));
     }
 
     let mut aln = Alignment::new(name);
@@ -151,7 +152,12 @@ pub fn write_file(aln: &Alignment, path: &Path) -> Result<()> {
 
 pub fn to_string(aln: &Alignment) -> Result<String> {
     let n_tax = aln.seq_count();
-    let n_char = aln.sequences.iter().map(|s| s.residues.len()).max().unwrap_or(0);
+    let n_char = aln
+        .sequences
+        .iter()
+        .map(|s| s.residues.len())
+        .max()
+        .unwrap_or(0);
 
     let datatype = if n_tax > 0 {
         match aln.sequences[0].seq_type {
@@ -180,9 +186,14 @@ pub fn to_string(aln: &Alignment) -> Result<String> {
         .unwrap_or(0);
 
     for seq in &aln.sequences {
-        let res_str = std::str::from_utf8(&seq.residues)
-            .map_err(|e| FormatError::Parse(e.to_string()))?;
-        out.push_str(&format!("    {:<width$}  {}\n", seq.name, res_str, width = max_name));
+        let res_str =
+            std::str::from_utf8(&seq.residues).map_err(|e| FormatError::Parse(e.to_string()))?;
+        out.push_str(&format!(
+            "    {:<width$}  {}\n",
+            seq.name,
+            res_str,
+            width = max_name
+        ));
     }
 
     out.push_str("  ;\n");

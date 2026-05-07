@@ -32,15 +32,15 @@ pub struct Preferences {
 impl Default for Preferences {
     fn default() -> Self {
         Self {
-            default_zoom:       1.0,
-            undo_depth:         100,
-            show_features:      true,
-            show_restr_map:     false,
-            color_scheme:       "ResidueType".to_string(),
+            default_zoom: 1.0,
+            undo_depth: 100,
+            show_features: true,
+            show_restr_map: false,
+            color_scheme: "ResidueType".to_string(),
             identity_threshold: 0.5,
-            font_size:          11.0,
-            recent_files_max:   10,
-            recent_files:       Vec::new(),
+            font_size: 11.0,
+            recent_files_max: 10,
+            recent_files: Vec::new(),
         }
     }
 }
@@ -56,10 +56,10 @@ pub fn prefs_path() -> Option<PathBuf> {
 pub fn load() -> Preferences {
     let path = match prefs_path() {
         Some(p) => p,
-        None    => return Preferences::default(),
+        None => return Preferences::default(),
     };
     let text = match std::fs::read_to_string(&path) {
-        Ok(t)  => t,
+        Ok(t) => t,
         Err(_) => return Preferences::default(),
     };
     toml::from_str(&text).unwrap_or_default()

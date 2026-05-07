@@ -6,18 +6,18 @@
 //!   - Gaps in residues (-, ~, .) preserved as-is
 //!   - Sequence type guessed from residue composition
 
+use crate::{FormatError, Result};
 use helixview_core::{
     alignment::Alignment,
     sequence::{Sequence, SequenceType},
 };
-use crate::{FormatError, Result};
 use std::io::Write;
 use std::path::Path;
 
 /// Parse a FASTA byte slice into an `Alignment`.
 pub fn parse_bytes(data: &[u8], name: &str) -> Result<Alignment> {
-    let text = std::str::from_utf8(data)
-        .map_err(|e| FormatError::Parse(format!("Invalid UTF-8: {e}")))?;
+    let text =
+        std::str::from_utf8(data).map_err(|e| FormatError::Parse(format!("Invalid UTF-8: {e}")))?;
     parse_str(text, name)
 }
 
@@ -33,7 +33,10 @@ pub fn parse_str(text: &str, name: &str) -> Result<Alignment> {
         if line.starts_with('>') {
             // Flush previous entry.
             if let Some(seq_name) = current_name.take() {
-                aln.push(build_sequence(seq_name, std::mem::take(&mut current_residues)));
+                aln.push(build_sequence(
+                    seq_name,
+                    std::mem::take(&mut current_residues),
+                ));
             }
             // Start new entry — everything after '>' is the name/description.
             current_name = Some(line[1..].trim().to_string());
@@ -54,7 +57,9 @@ pub fn parse_str(text: &str, name: &str) -> Result<Alignment> {
     }
 
     if aln.is_empty() {
-        return Err(FormatError::Parse("No sequences found in FASTA data".into()));
+        return Err(FormatError::Parse(
+            "No sequences found in FASTA data".into(),
+        ));
     }
 
     Ok(aln)
@@ -68,25 +73,50 @@ fn build_sequence(name: String, residues: Vec<u8>) -> Sequence {
 
 /// Heuristic: if >85% of non-gap characters are in {A,C,G,T,U,N} → nucleic acid.
 pub fn guess_type(residues: &[u8]) -> SequenceType {
-    let non_gap: Vec<u8> = residues.iter()
+    let non_gap: Vec<u8> = residues
+        .iter()
         .copied()
         .filter(|&b| !matches!(b, b'-' | b'~' | b'.'))
         .collect();
 
-    if non_gap.is_empty() { return SequenceType::Unknown; }
+    if non_gap.is_empty() {
+        return SequenceType::Unknown;
+    }
 
-    let na_chars: usize = non_gap.iter().filter(|&&b| {
-        matches!(b.to_ascii_uppercase(), b'A' | b'C' | b'G' | b'T' | b'U' | b'N' |
-                 b'R' | b'Y' | b'S' | b'W' | b'K' | b'M' | b'B' | b'D' | b'H' | b'V')
-    }).count();
+    let na_chars: usize = non_gap
+        .iter()
+        .filter(|&&b| {
+            matches!(
+                b.to_ascii_uppercase(),
+                b'A' | b'C'
+                    | b'G'
+                    | b'T'
+                    | b'U'
+                    | b'N'
+                    | b'R'
+                    | b'Y'
+                    | b'S'
+                    | b'W'
+                    | b'K'
+                    | b'M'
+                    | b'B'
+                    | b'D'
+                    | b'H'
+                    | b'V'
+            )
+        })
+        .count();
 
     let fraction = na_chars as f64 / non_gap.len() as f64;
     if fraction >= 0.85 {
         // Distinguish DNA vs RNA by presence of U.
         let has_u = non_gap.iter().any(|&b| b.to_ascii_uppercase() == b'U');
         let has_t = non_gap.iter().any(|&b| b.to_ascii_uppercase() == b'T');
-        if has_u && !has_t { SequenceType::Rna }
-        else { SequenceType::Dna }
+        if has_u && !has_t {
+            SequenceType::Rna
+        } else {
+            SequenceType::Dna
+        }
     } else {
         SequenceType::Protein
     }
@@ -101,8 +131,7 @@ pub fn write_file(aln: &Alignment, path: &Path) -> Result<()> {
 /// Write an alignment to any `Write` implementor.
 pub fn write_writer(aln: &Alignment, w: &mut dyn Write) -> Result<()> {
     for seq in &aln.sequences {
-        writeln!(w, ">{}", seq.name)
-            .map_err(FormatError::Io)?;
+        writeln!(w, ">{}", seq.name).map_err(FormatError::Io)?;
         // Write residues 60 per line (standard FASTA convention).
         for chunk in seq.residues.chunks(60) {
             w.write_all(chunk).map_err(FormatError::Io)?;

@@ -1,23 +1,25 @@
 //! Oligonucleotide Tm calculator view.
 
+use helixview_analysis::{calculate_tm, wallace_tm};
+use helixview_core::Alignment as SeqAlignment;
+use helixview_core::SequenceType;
 use iced::{
     widget::{button, column, container, row, scrollable, text},
     Alignment, Color, Element, Length,
 };
-use helixview_core::Alignment as SeqAlignment;
-use helixview_analysis::{calculate_tm, wallace_tm};
-use helixview_core::SequenceType;
 
 use crate::app::Message;
 
 pub fn oligo_tm_view<'a>(aln: &SeqAlignment) -> Element<'a, Message> {
     let toolbar = row![
-        button(text("< Back").size(12)).padding([3, 10])
+        button(text("< Back").size(12))
+            .padding([3, 10])
             .style(button::secondary)
             .on_press(Message::CloseOligoTm),
         text("Oligonucleotide Tm Calculator").size(13),
         iced::widget::horizontal_space(),
-        text("Conditions: 250 nM oligo, 50 mM Na⁺  ·  NN = SantaLucia 1998").size(10)
+        text("Conditions: 250 nM oligo, 50 mM Na⁺  ·  NN = SantaLucia 1998")
+            .size(10)
             .color(Color::from_rgb(0.5, 0.5, 0.5)),
     ]
     .spacing(10)
@@ -25,19 +27,21 @@ pub fn oligo_tm_view<'a>(aln: &SeqAlignment) -> Element<'a, Message> {
     .align_y(Alignment::Center);
 
     let header = row![
-        cell_hdr("Sequence",       200),
-        cell_hdr("Length (nt)",     90),
-        cell_hdr("GC %",            65),
-        cell_hdr("Tm NN (°C)",      90),
+        cell_hdr("Sequence", 200),
+        cell_hdr("Length (nt)", 90),
+        cell_hdr("GC %", 65),
+        cell_hdr("Tm NN (°C)", 90),
         cell_hdr("Tm Wallace (°C)", 110),
-        cell_hdr("ΔH (kcal/mol)",  110),
+        cell_hdr("ΔH (kcal/mol)", 110),
         cell_hdr("ΔS (cal/mol·K)", 110),
     ]
     .spacing(0);
 
     let mut rows: Vec<Element<Message>> = vec![header.into(), hsep()];
 
-    let dna_seqs: Vec<_> = aln.sequences.iter()
+    let dna_seqs: Vec<_> = aln
+        .sequences
+        .iter()
         .filter(|s| s.seq_type != SequenceType::Protein)
         .collect();
 
@@ -45,7 +49,7 @@ pub fn oligo_tm_view<'a>(aln: &SeqAlignment) -> Element<'a, Message> {
         rows.push(
             container(text("No nucleotide sequences in this alignment.").size(12))
                 .padding(16)
-                .into()
+                .into(),
         );
     }
 
@@ -79,22 +83,30 @@ pub fn oligo_tm_view<'a>(aln: &SeqAlignment) -> Element<'a, Message> {
         };
 
         // Color-code Tm: blue < 55, green 55–65, orange 65–75, red > 75
-        let tm_color = tm_res.as_ref().map(|r| {
-            let t = r.tm_celsius;
-            if t < 55.0      { Color::from_rgb(0.2, 0.4, 0.9) }
-            else if t < 65.0 { Color::from_rgb(0.1, 0.6, 0.3) }
-            else if t < 75.0 { Color::from_rgb(0.85, 0.5, 0.1) }
-            else             { Color::from_rgb(0.85, 0.15, 0.15) }
-        }).unwrap_or(Color::from_rgb(0.5, 0.5, 0.5));
+        let tm_color = tm_res
+            .as_ref()
+            .map(|r| {
+                let t = r.tm_celsius;
+                if t < 55.0 {
+                    Color::from_rgb(0.2, 0.4, 0.9)
+                } else if t < 65.0 {
+                    Color::from_rgb(0.1, 0.6, 0.3)
+                } else if t < 75.0 {
+                    Color::from_rgb(0.85, 0.5, 0.1)
+                } else {
+                    Color::from_rgb(0.85, 0.15, 0.15)
+                }
+            })
+            .unwrap_or(Color::from_rgb(0.5, 0.5, 0.5));
 
         let r = row![
             cell_name(&seq.name, 200, bg),
-            cell_str(len_s,       90, bg, None),
-            cell_str(gc_s,        65, bg, None),
-            cell_str(tm_nn_s,     90, bg, Some(tm_color)),
-            cell_str(tm_w_s,     110, bg, None),
-            cell_str(dh_s,       110, bg, None),
-            cell_str(ds_s,       110, bg, None),
+            cell_str(len_s, 90, bg, None),
+            cell_str(gc_s, 65, bg, None),
+            cell_str(tm_nn_s, 90, bg, Some(tm_color)),
+            cell_str(tm_w_s, 110, bg, None),
+            cell_str(dh_s, 110, bg, None),
+            cell_str(ds_s, 110, bg, None),
         ]
         .spacing(0);
         rows.push(r.into());
@@ -136,7 +148,11 @@ fn cell_hdr<'a>(label: &str, w: u16) -> Element<'a, Message> {
 }
 
 fn cell_name<'a>(name: &str, w: u16, bg: Color) -> Element<'a, Message> {
-    let label = if name.len() > 24 { format!("{}…", &name[..23]) } else { name.to_string() };
+    let label = if name.len() > 24 {
+        format!("{}…", &name[..23])
+    } else {
+        name.to_string()
+    };
     container(text(label).size(11))
         .width(Length::Fixed(w as f32))
         .padding([3, 6])
@@ -150,7 +166,7 @@ fn cell_name<'a>(name: &str, w: u16, bg: Color) -> Element<'a, Message> {
 fn cell_str<'a>(s: String, w: u16, bg: Color, color: Option<Color>) -> Element<'a, Message> {
     let t = match color {
         Some(c) => text(s).size(11).color(c),
-        None    => text(s).size(11),
+        None => text(s).size(11),
     };
     container(t)
         .width(Length::Fixed(w as f32))

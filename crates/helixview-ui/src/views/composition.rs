@@ -1,18 +1,19 @@
 //! Sequence composition table view.
 
+use helixview_analysis::{amino_acid_composition, nucleotide_composition};
+use helixview_core::Alignment as SeqAlignment;
+use helixview_core::SequenceType;
 use iced::{
     widget::{button, column, container, row, scrollable, text},
     Alignment, Color, Element, Length,
 };
-use helixview_core::Alignment as SeqAlignment;
-use helixview_analysis::{amino_acid_composition, nucleotide_composition};
-use helixview_core::SequenceType;
 
 use crate::app::Message;
 
 pub fn composition_view<'a>(aln: &SeqAlignment) -> Element<'a, Message> {
     let toolbar = row![
-        button(text("< Back").size(12)).padding([3, 10])
+        button(text("< Back").size(12))
+            .padding([3, 10])
             .style(button::secondary)
             .on_press(Message::CloseComposition),
         text(format!("Composition — {} sequences", aln.seq_count())).size(13),
@@ -22,7 +23,9 @@ pub fn composition_view<'a>(aln: &SeqAlignment) -> Element<'a, Message> {
     .align_y(Alignment::Center);
 
     // Detect majority sequence type.
-    let is_protein = aln.sequences.iter()
+    let is_protein = aln
+        .sequences
+        .iter()
         .any(|s| s.seq_type == SequenceType::Protein);
 
     let table: Element<Message> = if is_protein {
@@ -41,16 +44,16 @@ pub fn composition_view<'a>(aln: &SeqAlignment) -> Element<'a, Message> {
 
 fn nucleotide_table<'a>(aln: &SeqAlignment) -> Element<'a, Message> {
     let header = row![
-        cell_hdr("Sequence",  200),
-        cell_hdr("A",          55),
-        cell_hdr("T/U",        55),
-        cell_hdr("G",          55),
-        cell_hdr("C",          55),
-        cell_hdr("Other",      55),
-        cell_hdr("Total",      65),
-        cell_hdr("GC %",       65),
-        cell_hdr("AT %",       65),
-        cell_hdr("MW (Da)",   100),
+        cell_hdr("Sequence", 200),
+        cell_hdr("A", 55),
+        cell_hdr("T/U", 55),
+        cell_hdr("G", 55),
+        cell_hdr("C", 55),
+        cell_hdr("Other", 55),
+        cell_hdr("Total", 65),
+        cell_hdr("GC %", 65),
+        cell_hdr("AT %", 65),
+        cell_hdr("MW (Da)", 100),
     ]
     .spacing(0);
 
@@ -65,26 +68,24 @@ fn nucleotide_table<'a>(aln: &SeqAlignment) -> Element<'a, Message> {
         };
         let r = row![
             cell_name(&seq.name, 200, bg),
-            cell_num(comp.a,         55, bg),
+            cell_num(comp.a, 55, bg),
             cell_num(comp.t + comp.u, 55, bg),
-            cell_num(comp.g,         55, bg),
-            cell_num(comp.c,         55, bg),
-            cell_num(comp.other,     55, bg),
-            cell_num(comp.total,     65, bg),
-            cell_pct(comp.gc_pct,    65, bg),
-            cell_pct(comp.at_pct,    65, bg),
-            cell_f(comp.mw,         100, bg),
+            cell_num(comp.g, 55, bg),
+            cell_num(comp.c, 55, bg),
+            cell_num(comp.other, 55, bg),
+            cell_num(comp.total, 65, bg),
+            cell_pct(comp.gc_pct, 65, bg),
+            cell_pct(comp.at_pct, 65, bg),
+            cell_f(comp.mw, 100, bg),
         ]
         .spacing(0);
         rows.push(r.into());
     }
 
-    scrollable(
-        column(rows).width(Length::Fill).spacing(0)
-    )
-    .width(Length::Fill)
-    .height(Length::Fill)
-    .into()
+    scrollable(column(rows).width(Length::Fill).spacing(0))
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
 }
 
 // ── Amino acid table ──────────────────────────────────────────────────────────
@@ -96,9 +97,10 @@ fn protein_table<'a>(aln: &SeqAlignment) -> Element<'a, Message> {
     for &aa in AA_ORDER {
         hdr = hdr.push(cell_hdr(std::str::from_utf8(&[aa]).unwrap(), 38));
     }
-    hdr = hdr.push(cell_hdr("Other", 50))
-             .push(cell_hdr("Total", 65))
-             .push(cell_hdr("MW (kDa)", 90));
+    hdr = hdr
+        .push(cell_hdr("Other", 50))
+        .push(cell_hdr("Total", 65))
+        .push(cell_hdr("MW (kDa)", 90));
 
     let mut rows: Vec<Element<Message>> = vec![hdr.into(), hsep()];
 
@@ -110,26 +112,24 @@ fn protein_table<'a>(aln: &SeqAlignment) -> Element<'a, Message> {
             Color::WHITE
         };
         let counts: [u64; 20] = [
-            comp.a, comp.c, comp.d, comp.e, comp.f, comp.g, comp.h,
-            comp.i, comp.k, comp.l, comp.m, comp.n, comp.p, comp.q,
-            comp.r, comp.s, comp.t, comp.v, comp.w, comp.y,
+            comp.a, comp.c, comp.d, comp.e, comp.f, comp.g, comp.h, comp.i, comp.k, comp.l, comp.m,
+            comp.n, comp.p, comp.q, comp.r, comp.s, comp.t, comp.v, comp.w, comp.y,
         ];
         let mut r = row![cell_name(&seq.name, 180, bg)].spacing(0);
         for &cnt in &counts {
             r = r.push(cell_num(cnt, 38, bg));
         }
-        r = r.push(cell_num(comp.other, 50, bg))
-             .push(cell_num(comp.total, 65, bg))
-             .push(cell_f(comp.mw / 1000.0, 90, bg));
+        r = r
+            .push(cell_num(comp.other, 50, bg))
+            .push(cell_num(comp.total, 65, bg))
+            .push(cell_f(comp.mw / 1000.0, 90, bg));
         rows.push(r.into());
     }
 
-    scrollable(
-        column(rows).width(Length::Fill).spacing(0)
-    )
-    .width(Length::Fill)
-    .height(Length::Fill)
-    .into()
+    scrollable(column(rows).width(Length::Fill).spacing(0))
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
 }
 
 // ── Cell helpers ──────────────────────────────────────────────────────────────
@@ -146,7 +146,11 @@ fn cell_hdr<'a>(label: &str, w: u16) -> Element<'a, Message> {
 }
 
 fn cell_name<'a>(name: &str, w: u16, bg: Color) -> Element<'a, Message> {
-    let label = if name.len() > 24 { format!("{}…", &name[..23]) } else { name.to_string() };
+    let label = if name.len() > 24 {
+        format!("{}…", &name[..23])
+    } else {
+        name.to_string()
+    };
     container(text(label).size(11))
         .width(Length::Fixed(w as f32))
         .padding([3, 6])

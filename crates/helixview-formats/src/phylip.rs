@@ -1,13 +1,13 @@
+use crate::{FormatError, Result};
 use helixview_core::{
     alignment::Alignment,
     sequence::{Sequence, SequenceType},
 };
-use crate::{FormatError, Result};
 use std::path::Path;
 
 pub fn parse_bytes(data: &[u8], name: &str) -> Result<Alignment> {
-    let text = std::str::from_utf8(data)
-        .map_err(|e| FormatError::Parse(format!("Invalid UTF-8: {e}")))?;
+    let text =
+        std::str::from_utf8(data).map_err(|e| FormatError::Parse(format!("Invalid UTF-8: {e}")))?;
     parse_str(text, name)
 }
 
@@ -49,9 +49,9 @@ pub fn parse_str(text: &str, name: &str) -> Result<Alignment> {
     let mut parsed = 0;
     while parsed < n_seqs {
         if line_idx >= remaining.len() {
-            return Err(FormatError::Parse(
-                format!("Expected {n_seqs} sequences but file ended early"),
-            ));
+            return Err(FormatError::Parse(format!(
+                "Expected {n_seqs} sequences but file ended early"
+            )));
         }
         let line = remaining[line_idx];
         line_idx += 1;
@@ -116,9 +116,7 @@ fn infer_type(residues: &[u8]) -> SequenceType {
     }
 
     let dna_rna_set: &[u8] = b"ACGTURYNacgturyn";
-    let is_protein = non_gap
-        .iter()
-        .any(|b| !dna_rna_set.contains(b));
+    let is_protein = non_gap.iter().any(|b| !dna_rna_set.contains(b));
 
     if is_protein {
         return SequenceType::Protein;
@@ -143,7 +141,12 @@ pub fn to_string(aln: &Alignment) -> Result<String> {
     }
 
     let n_seqs = aln.seq_count();
-    let n_cols = aln.sequences.iter().map(|s| s.residues.len()).max().unwrap_or(0);
+    let n_cols = aln
+        .sequences
+        .iter()
+        .map(|s| s.residues.len())
+        .max()
+        .unwrap_or(0);
 
     let mut out = String::new();
     out.push_str(&format!(" {} {}\n", n_seqs, n_cols));

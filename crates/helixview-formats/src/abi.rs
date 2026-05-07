@@ -90,10 +90,10 @@ fn read_u32(data: &[u8], offset: usize) -> Option<u32> {
 // 24      4     (unused handle)
 
 struct DirEntry {
-    tag_name:    [u8; 4],
-    tag_num:     i32,
-    num_elems:   i32,
-    data_size:   i32,
+    tag_name: [u8; 4],
+    tag_num: i32,
+    num_elems: i32,
+    data_size: i32,
     data_offset: u32,
     /// The 4 raw bytes at the data_offset field position (for inline data).
     inline_data: [u8; 4],
@@ -104,12 +104,19 @@ fn read_dir_entry(data: &[u8], offset: usize) -> Option<DirEntry> {
         return None;
     }
     let tag_name: [u8; 4] = data[offset..offset + 4].try_into().ok()?;
-    let tag_num             = read_i32(data, offset + 4)?;
-    let num_elems           = read_i32(data, offset + 12)?;
-    let data_size           = read_i32(data, offset + 16)?;
-    let data_offset         = read_u32(data, offset + 20)?;
+    let tag_num = read_i32(data, offset + 4)?;
+    let num_elems = read_i32(data, offset + 12)?;
+    let data_size = read_i32(data, offset + 16)?;
+    let data_offset = read_u32(data, offset + 20)?;
     let inline_data: [u8; 4] = data[offset + 20..offset + 24].try_into().ok()?;
-    Some(DirEntry { tag_name, tag_num, num_elems, data_size, data_offset, inline_data })
+    Some(DirEntry {
+        tag_name,
+        tag_num,
+        num_elems,
+        data_size,
+        data_offset,
+        inline_data,
+    })
 }
 
 /// Return the raw byte payload for an entry (handles inline vs. file-offset storage).
@@ -161,11 +168,10 @@ pub fn parse(data: &[u8]) -> Result<AbiTrace, String> {
     }
 
     // The root directory entry is always at byte offset 6.
-    let root = read_dir_entry(data, 6)
-        .ok_or("Cannot read ABIF root directory entry")?;
+    let root = read_dir_entry(data, 6).ok_or("Cannot read ABIF root directory entry")?;
 
     let dir_offset = root.data_offset as usize;
-    let dir_count  = root.num_elems.max(0) as usize;
+    let dir_count = root.num_elems.max(0) as usize;
 
     if dir_offset >= data.len() {
         return Err(format!(
@@ -228,9 +234,7 @@ pub fn parse(data: &[u8]) -> Result<AbiTrace, String> {
         .unwrap_or([b'G', b'A', b'T', b'C']);
 
     if num_samples == 0 {
-        return Err(
-            "No trace data found (DATA 1–4 tags are missing or empty)".to_string(),
-        );
+        return Err("No trace data found (DATA 1–4 tags are missing or empty)".to_string());
     }
 
     Ok(AbiTrace {

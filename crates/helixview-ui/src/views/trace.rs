@@ -9,18 +9,16 @@
 use std::cell::Cell;
 use std::sync::Arc;
 
-use iced::{
-    alignment,
-    mouse,
-    widget::{button, canvas, column, container, row, scrollable, slider, text},
-    Alignment as IAlign, Background, Color, Element, Font, Length, Pixels, Point,
-    Rectangle, Size,
-};
 use iced::widget::canvas::{Frame, Path, Text as CanvasText};
+use iced::{
+    alignment, mouse,
+    widget::{button, canvas, column, container, row, scrollable, slider, text},
+    Alignment as IAlign, Background, Color, Element, Font, Length, Pixels, Point, Rectangle, Size,
+};
 
-use helixview_formats::abi::AbiTrace;
 use crate::app::Message;
 use crate::theme::palette;
+use helixview_formats::abi::AbiTrace;
 
 // ── Base channel colors ───────────────────────────────────────────────────────
 
@@ -30,7 +28,7 @@ fn base_color(base: u8) -> Color {
         b'C' => Color::from_rgb(0.08, 0.30, 0.88), // blue
         b'T' => Color::from_rgb(0.86, 0.12, 0.12), // red
         b'G' => Color::from_rgb(0.10, 0.10, 0.10), // near-black
-        _    => Color::from_rgb(0.60, 0.60, 0.60), // grey fallback
+        _ => Color::from_rgb(0.60, 0.60, 0.60),    // grey fallback
     }
 }
 
@@ -38,11 +36,11 @@ fn base_color(base: u8) -> Color {
 
 /// Build the full trace viewer: toolbar + chromatogram canvas + quant panel.
 pub fn trace_view<'a>(
-    trace:  &Arc<AbiTrace>,
+    trace: &Arc<AbiTrace>,
     scroll: f32,
-    zoom:   f32,
-    ch_a:   u8,
-    ch_b:   u8,
+    zoom: f32,
+    ch_a: u8,
+    ch_b: u8,
 ) -> Element<'a, Message> {
     // ── Toolbar ──────────────────────────────────────────────────────────────
     let back_btn = button(text("< Back").size(13))
@@ -61,37 +59,39 @@ pub fn trace_view<'a>(
     let channel_key = trace.channel_bases.iter().enumerate().fold(
         row![].spacing(6).align_y(IAlign::Center),
         |r, (i, &b)| {
-            let dot = container(text("■").size(12).color(base_color(b)))
-                .padding([0, 2]);
-            let lbl = text(format!(
-                "ch{}: {}",
-                i + 1,
-                b as char
-            ))
-            .size(11)
-            .color(palette::TEXT_DIM);
+            let dot = container(text("■").size(12).color(base_color(b))).padding([0, 2]);
+            let lbl = text(format!("ch{}: {}", i + 1, b as char))
+                .size(11)
+                .color(palette::TEXT_DIM);
             r.push(dot).push(lbl)
         },
     );
 
-    let zoom_lbl  = text(format!("{:.1}×", zoom)).size(11).color(palette::TEXT_DIM);
-    let zoom_sl   = slider(1.0f32..=16.0, zoom, Message::TraceZoom).width(80);
-    let zoom_row  = row![text("Zoom:").size(11).color(palette::TEXT_DIM), zoom_sl, zoom_lbl]
-        .spacing(4).align_y(IAlign::Center);
+    let zoom_lbl = text(format!("{:.1}×", zoom))
+        .size(11)
+        .color(palette::TEXT_DIM);
+    let zoom_sl = slider(1.0f32..=16.0, zoom, Message::TraceZoom).width(80);
+    let zoom_row = row![
+        text("Zoom:").size(11).color(palette::TEXT_DIM),
+        zoom_sl,
+        zoom_lbl
+    ]
+    .spacing(4)
+    .align_y(IAlign::Center);
 
     let scroll_sl = slider(0.0f32..=1.0, scroll, Message::TraceScroll).width(120);
-    let scroll_row = row![
-        text("Scroll:").size(11).color(palette::TEXT_DIM),
-        scroll_sl,
-    ]
-    .spacing(4).align_y(IAlign::Center);
+    let scroll_row = row![text("Scroll:").size(11).color(palette::TEXT_DIM), scroll_sl,]
+        .spacing(4)
+        .align_y(IAlign::Center);
 
     let toolbar = container(
-        row![back_btn, info_lbl,
-             iced::widget::horizontal_space(),
-             channel_key,
-             zoom_row,
-             scroll_row,
+        row![
+            back_btn,
+            info_lbl,
+            iced::widget::horizontal_space(),
+            channel_key,
+            zoom_row,
+            scroll_row,
         ]
         .spacing(12)
         .align_y(IAlign::Center)
@@ -110,9 +110,7 @@ pub fn trace_view<'a>(
         scroll,
         zoom,
     };
-    let chrom_canvas = canvas(chrom)
-        .width(Length::Fill)
-        .height(Length::Fill);
+    let chrom_canvas = canvas(chrom).width(Length::Fill).height(Length::Fill);
 
     // ── Quantification panel ─────────────────────────────────────────────────
     let quant = quant_panel(trace, ch_a, ch_b);
@@ -132,12 +130,15 @@ fn quant_panel<'a>(trace: &Arc<AbiTrace>, ch_a: u8, ch_b: u8) -> Element<'a, Mes
     let make_cycle_btns = |current: u8, mk_msg: fn(u8) -> Message| {
         let btns = bases_for.iter().map(|&b| {
             let label = (b as char).to_string();
-            let btn = button(text(label).size(11).color(base_color(b)))
-                .padding([2, 7]);
+            let btn = button(text(label).size(11).color(base_color(b))).padding([2, 7]);
             if b == current {
                 btn.style(|_theme, _state| button::Style {
                     background: Some(Background::Color(Color::from_rgb(0.85, 0.92, 1.0))),
-                    border: iced::Border { radius: 3.0.into(), width: 1.0, color: Color::from_rgb(0.4, 0.6, 0.9) },
+                    border: iced::Border {
+                        radius: 3.0.into(),
+                        width: 1.0,
+                        color: Color::from_rgb(0.4, 0.6, 0.9),
+                    },
                     ..Default::default()
                 })
             } else {
@@ -145,32 +146,48 @@ fn quant_panel<'a>(trace: &Arc<AbiTrace>, ch_a: u8, ch_b: u8) -> Element<'a, Mes
             }
         });
         let mut r = row![].spacing(2).align_y(IAlign::Center);
-        for b in btns { r = r.push(b); }
+        for b in btns {
+            r = r.push(b);
+        }
         r
     };
 
     let ch_a_sel = row![
         text("Channel A:").size(11).color(palette::TEXT_DIM),
         make_cycle_btns(ch_a, Message::TraceQuantChA),
-    ].spacing(4).align_y(IAlign::Center);
+    ]
+    .spacing(4)
+    .align_y(IAlign::Center);
 
     let ch_b_sel = row![
         text("Channel B:").size(11).color(palette::TEXT_DIM),
         make_cycle_btns(ch_b, Message::TraceQuantChB),
-    ].spacing(4).align_y(IAlign::Center);
+    ]
+    .spacing(4)
+    .align_y(IAlign::Center);
 
     // ── Per-base-type summary ─────────────────────────────────────────────────
     let idx_a = trace.channel_for_base(ch_a);
     let idx_b = trace.channel_for_base(ch_b);
 
     // Compute means per called-base type.
-    struct BaseStat { count: u32, sum_a: i64, sum_b: i64 }
+    struct BaseStat {
+        count: u32,
+        sum_a: i64,
+        sum_b: i64,
+    }
     let mut stats: std::collections::HashMap<u8, BaseStat> = std::collections::HashMap::new();
 
     for (i, &called) in trace.bases.iter().enumerate() {
         let ha = idx_a.map(|c| trace.peak_height(i, c)).unwrap_or(0) as i64;
         let hb = idx_b.map(|c| trace.peak_height(i, c)).unwrap_or(0) as i64;
-        let e  = stats.entry(called.to_ascii_uppercase()).or_insert(BaseStat { count: 0, sum_a: 0, sum_b: 0 });
+        let e = stats
+            .entry(called.to_ascii_uppercase())
+            .or_insert(BaseStat {
+                count: 0,
+                sum_a: 0,
+                sum_b: 0,
+            });
         e.count += 1;
         e.sum_a += ha;
         e.sum_b += hb;
@@ -179,11 +196,11 @@ fn quant_panel<'a>(trace: &Arc<AbiTrace>, ch_a: u8, ch_b: u8) -> Element<'a, Mes
     // Build summary table rows.
     let header = container(
         row![
-            cell("Base".to_string(),  50),
+            cell("Base".to_string(), 50),
             cell("Count".to_string(), 55),
-            cell("h_A".to_string(),   60),
-            cell("h_B".to_string(),   60),
-            cell("P(%)".to_string(),  60),
+            cell("h_A".to_string(), 60),
+            cell("h_B".to_string(), 60),
+            cell("P(%)".to_string(), 60),
         ]
         .spacing(0),
     )
@@ -196,31 +213,44 @@ fn quant_panel<'a>(trace: &Arc<AbiTrace>, ch_a: u8, ch_b: u8) -> Element<'a, Mes
     let mut sorted_bases: Vec<u8> = stats.keys().copied().collect();
     sorted_bases.sort();
 
-    let rows: Vec<Element<Message>> = sorted_bases.iter().map(|&b| {
-        let st = &stats[&b];
-        let mean_a = if st.count > 0 { st.sum_a / st.count as i64 } else { 0 };
-        let mean_b = if st.count > 0 { st.sum_b / st.count as i64 } else { 0 };
-        let pct = if mean_a + mean_b > 0 {
-            format!("{:.1}%", mean_a as f64 / (mean_a + mean_b) as f64 * 100.0)
-        } else {
-            "—".to_string()
-        };
-        container(
-            row![
-                cell_colored((b as char).to_string(), 50, base_color(b)),
-                cell(st.count.to_string(),  55),
-                cell(mean_a.to_string(),    60),
-                cell(mean_b.to_string(),    60),
-                cell(pct,                   60),
-            ]
-            .spacing(0),
-        )
-        .padding([1, 6])
-        .into()
-    }).collect();
+    let rows: Vec<Element<Message>> = sorted_bases
+        .iter()
+        .map(|&b| {
+            let st = &stats[&b];
+            let mean_a = if st.count > 0 {
+                st.sum_a / st.count as i64
+            } else {
+                0
+            };
+            let mean_b = if st.count > 0 {
+                st.sum_b / st.count as i64
+            } else {
+                0
+            };
+            let pct = if mean_a + mean_b > 0 {
+                format!("{:.1}%", mean_a as f64 / (mean_a + mean_b) as f64 * 100.0)
+            } else {
+                "—".to_string()
+            };
+            container(
+                row![
+                    cell_colored((b as char).to_string(), 50, base_color(b)),
+                    cell(st.count.to_string(), 55),
+                    cell(mean_a.to_string(), 60),
+                    cell(mean_b.to_string(), 60),
+                    cell(pct, 60),
+                ]
+                .spacing(0),
+            )
+            .padding([1, 6])
+            .into()
+        })
+        .collect();
 
     let mut table_col = column![header].spacing(0);
-    for r in rows { table_col = table_col.push(r); }
+    for r in rows {
+        table_col = table_col.push(r);
+    }
 
     // Formula note
     let formula_note = text(format!(
@@ -252,9 +282,7 @@ fn quant_panel<'a>(trace: &Arc<AbiTrace>, ch_a: u8, ch_b: u8) -> Element<'a, Mes
     })
     .width(Length::Fill);
 
-    scrollable(panel)
-        .height(Length::Fixed(160.0))
-        .into()
+    scrollable(panel).height(Length::Fixed(160.0)).into()
 }
 
 fn cell<'a>(s: String, w: u16) -> Element<'a, Message> {
@@ -274,19 +302,22 @@ fn cell_colored<'a>(s: String, w: u16, color: Color) -> Element<'a, Message> {
 // ── Chromatogram canvas ───────────────────────────────────────────────────────
 
 struct ChromatogramCanvas {
-    trace:  Arc<AbiTrace>,
+    trace: Arc<AbiTrace>,
     scroll: f32,
-    zoom:   f32,
+    zoom: f32,
 }
 
 pub struct ChromatogramState {
-    cache:    canvas::Cache,
+    cache: canvas::Cache,
     last_key: Cell<u64>,
 }
 
 impl Default for ChromatogramState {
     fn default() -> Self {
-        Self { cache: canvas::Cache::default(), last_key: Cell::new(u64::MAX) }
+        Self {
+            cache: canvas::Cache::default(),
+            last_key: Cell::new(u64::MAX),
+        }
     }
 }
 
@@ -295,17 +326,17 @@ impl canvas::Program<Message> for ChromatogramCanvas {
 
     fn draw(
         &self,
-        state:    &ChromatogramState,
+        state: &ChromatogramState,
         renderer: &iced::Renderer,
-        _theme:   &iced::Theme,
-        bounds:   Rectangle,
-        _cursor:  mouse::Cursor,
+        _theme: &iced::Theme,
+        bounds: Rectangle,
+        _cursor: mouse::Cursor,
     ) -> Vec<canvas::Geometry<iced::Renderer>> {
         // Cache invalidation: any change to parameters or window size triggers redraw.
         let key = (Arc::as_ptr(&self.trace) as u64)
             .wrapping_add(self.scroll.to_bits() as u64)
             .wrapping_add(self.zoom.to_bits() as u64)
-            .wrapping_add(bounds.width.to_bits()  as u64)
+            .wrapping_add(bounds.width.to_bits() as u64)
             .wrapping_add(bounds.height.to_bits() as u64);
 
         if key != state.last_key.get() {
@@ -323,16 +354,16 @@ impl canvas::Program<Message> for ChromatogramCanvas {
 
 // ── Drawing ───────────────────────────────────────────────────────────────────
 
-const LABEL_AREA_H: f32 = 18.0;  // height reserved above trace for base labels
-const AXIS_PAD_L:   f32 = 6.0;
-const AXIS_PAD_B:   f32 = 4.0;
+const LABEL_AREA_H: f32 = 18.0; // height reserved above trace for base labels
+const AXIS_PAD_L: f32 = 6.0;
+const AXIS_PAD_B: f32 = 4.0;
 
 fn draw_chromatogram(
-    frame:  &mut Frame<iced::Renderer>,
-    size:   Size,
-    trace:  &AbiTrace,
+    frame: &mut Frame<iced::Renderer>,
+    size: Size,
+    trace: &AbiTrace,
     scroll: f32,
-    zoom:   f32,
+    zoom: f32,
 ) {
     // White background
     frame.fill_rectangle(Point::ORIGIN, size, Color::WHITE);
@@ -342,18 +373,18 @@ fn draw_chromatogram(
         return;
     }
 
-    let total     = trace.num_samples;
-    let zoom      = zoom.max(1.0_f32).min(64.0_f32);
+    let total = trace.num_samples;
+    let zoom = zoom.max(1.0_f32).min(64.0_f32);
     // Number of samples visible in the current window.
-    let visible   = ((total as f32) / zoom).ceil() as usize;
-    let visible   = visible.min(total).max(1);
+    let visible = ((total as f32) / zoom).ceil() as usize;
+    let visible = visible.min(total).max(1);
     // Start sample derived from scroll fraction.
     let max_start = total.saturating_sub(visible);
-    let start     = ((scroll.clamp(0.0, 1.0) * max_start as f32) as usize).min(max_start);
-    let end       = (start + visible).min(total);
+    let start = ((scroll.clamp(0.0, 1.0) * max_start as f32) as usize).min(max_start);
+    let end = (start + visible).min(total);
 
     // Drawing area
-    let draw_w = (size.width  - AXIS_PAD_L).max(1.0);
+    let draw_w = (size.width - AXIS_PAD_L).max(1.0);
     let draw_h = (size.height - LABEL_AREA_H - AXIS_PAD_B).max(1.0);
     let max_val = trace.max_value().max(1) as f32;
 
@@ -361,21 +392,25 @@ fn draw_chromatogram(
 
     // ── Draw each channel as a polyline ───────────────────────────────────────
     for (ch_idx, channel) in trace.channels.iter().enumerate() {
-        if channel.is_empty() { continue; }
-        let base  = trace.channel_bases[ch_idx];
+        if channel.is_empty() {
+            continue;
+        }
+        let base = trace.channel_bases[ch_idx];
         let color = base_color(base);
 
         // Collect visible (x, y) pairs.
         let points: Vec<Point> = (start..end)
             .filter_map(|s| {
-                let val  = *channel.get(s)? as f32;
-                let x    = AXIS_PAD_L + (s - start) as f32 * px_per_sample;
-                let y    = LABEL_AREA_H + draw_h * (1.0 - (val.max(0.0) / max_val));
+                let val = *channel.get(s)? as f32;
+                let x = AXIS_PAD_L + (s - start) as f32 * px_per_sample;
+                let y = LABEL_AREA_H + draw_h * (1.0 - (val.max(0.0) / max_val));
                 Some(Point::new(x, y))
             })
             .collect();
 
-        if points.len() < 2 { continue; }
+        if points.len() < 2 {
+            continue;
+        }
 
         let path = Path::new(|b| {
             b.move_to(points[0]);
@@ -386,17 +421,19 @@ fn draw_chromatogram(
 
         frame.stroke(
             &path,
-            canvas::Stroke::default()
-                .with_color(color)
-                .with_width(1.5),
+            canvas::Stroke::default().with_color(color).with_width(1.5),
         );
     }
 
     // ── Base call labels at peak positions ────────────────────────────────────
     for (i, &loc) in trace.peak_locs.iter().enumerate() {
         let s = loc as usize;
-        if s < start || s >= end { continue; }
-        let Some(&base) = trace.bases.get(i) else { continue };
+        if s < start || s >= end {
+            continue;
+        }
+        let Some(&base) = trace.bases.get(i) else {
+            continue;
+        };
         let color = base_color(base);
         let x = AXIS_PAD_L + (s - start) as f32 * px_per_sample;
 
@@ -409,13 +446,13 @@ fn draw_chromatogram(
 
         // Base letter
         frame.fill_text(CanvasText {
-            content:  (base as char).to_string(),
+            content: (base as char).to_string(),
             position: Point::new(x, LABEL_AREA_H * 0.5),
             color,
-            size:      Pixels(10.0),
-            font:      Font::MONOSPACE,
+            size: Pixels(10.0),
+            font: Font::MONOSPACE,
             horizontal_alignment: alignment::Horizontal::Center,
-            vertical_alignment:   alignment::Vertical::Center,
+            vertical_alignment: alignment::Vertical::Center,
             ..CanvasText::default()
         });
     }
@@ -429,26 +466,26 @@ fn draw_chromatogram(
 
     // ── Sample-range annotation (bottom-right) ────────────────────────────────
     frame.fill_text(CanvasText {
-        content:  format!("{start}–{end}"),
+        content: format!("{start}–{end}"),
         position: Point::new(size.width - 4.0, size.height - 2.0),
-        color:    palette::TEXT_DIM,
-        size:     Pixels(9.0),
-        font:     Font::MONOSPACE,
+        color: palette::TEXT_DIM,
+        size: Pixels(9.0),
+        font: Font::MONOSPACE,
         horizontal_alignment: alignment::Horizontal::Right,
-        vertical_alignment:   alignment::Vertical::Bottom,
+        vertical_alignment: alignment::Vertical::Bottom,
         ..CanvasText::default()
     });
 }
 
 fn draw_placeholder(frame: &mut Frame<iced::Renderer>, size: Size, msg: &str) {
     frame.fill_text(CanvasText {
-        content:  msg.to_string(),
+        content: msg.to_string(),
         position: Point::new(size.width * 0.5, size.height * 0.5),
-        color:    palette::TEXT_DIM,
-        size:     Pixels(14.0),
-        font:     Font::MONOSPACE,
+        color: palette::TEXT_DIM,
+        size: Pixels(14.0),
+        font: Font::MONOSPACE,
         horizontal_alignment: alignment::Horizontal::Center,
-        vertical_alignment:   alignment::Vertical::Center,
+        vertical_alignment: alignment::Vertical::Center,
         ..CanvasText::default()
     });
 }

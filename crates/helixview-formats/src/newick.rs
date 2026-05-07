@@ -58,9 +58,14 @@ fn parse_node(s: &[u8], pos: &mut usize) -> Result<TreeNode, String> {
                 break;
             }
             match s[*pos] {
-                b',' => { *pos += 1; }
-                b')' => { *pos += 1; break; }
-                _    => break,
+                b',' => {
+                    *pos += 1;
+                }
+                b')' => {
+                    *pos += 1;
+                    break;
+                }
+                _ => break,
             }
         }
     }
@@ -106,32 +111,49 @@ fn read_label(s: &[u8], pos: &mut usize) -> String {
                 // quoted label
                 *pos += 1;
                 let qs = *pos;
-                while *pos < s.len() && s[*pos] != b'\'' { *pos += 1; }
+                while *pos < s.len() && s[*pos] != b'\'' {
+                    *pos += 1;
+                }
                 let label = std::str::from_utf8(&s[qs..*pos]).unwrap_or("").to_string();
-                if *pos < s.len() { *pos += 1; } // closing quote
+                if *pos < s.len() {
+                    *pos += 1;
+                } // closing quote
                 return label;
             }
             b'[' => {
                 // NHX comment — skip
-                while *pos < s.len() && s[*pos] != b']' { *pos += 1; }
-                if *pos < s.len() { *pos += 1; }
+                while *pos < s.len() && s[*pos] != b']' {
+                    *pos += 1;
+                }
+                if *pos < s.len() {
+                    *pos += 1;
+                }
                 break;
             }
-            _ => { *pos += 1; }
+            _ => {
+                *pos += 1;
+            }
         }
     }
-    std::str::from_utf8(&s[start..*pos]).unwrap_or("").trim().to_string()
+    std::str::from_utf8(&s[start..*pos])
+        .unwrap_or("")
+        .trim()
+        .to_string()
 }
 
 fn read_number(s: &[u8], pos: &mut usize) -> String {
     let start = *pos;
     while *pos < s.len() {
         match s[*pos] {
-            b'0'..=b'9' | b'.' | b'-' | b'+' | b'e' | b'E' => { *pos += 1; }
+            b'0'..=b'9' | b'.' | b'-' | b'+' | b'e' | b'E' => {
+                *pos += 1;
+            }
             _ => break,
         }
     }
-    std::str::from_utf8(&s[start..*pos]).unwrap_or("").to_string()
+    std::str::from_utf8(&s[start..*pos])
+        .unwrap_or("")
+        .to_string()
 }
 
 // ── NEXUS ─────────────────────────────────────────────────────────────────────
@@ -142,7 +164,10 @@ fn parse_nexus(text: &str) -> Result<Vec<PhyloTree>, String> {
     let upper = text.to_ascii_uppercase();
     let trees_start = upper.find("BEGIN TREES").ok_or("No BEGIN TREES block")?;
     let trees_text = &text[trees_start..];
-    let end = trees_text.to_ascii_uppercase().find("END;").unwrap_or(trees_text.len());
+    let end = trees_text
+        .to_ascii_uppercase()
+        .find("END;")
+        .unwrap_or(trees_text.len());
     let block = &trees_text[..end];
 
     // Parse optional TRANSLATE section
@@ -169,9 +194,13 @@ fn parse_nexus(text: &str) -> Result<Vec<PhyloTree>, String> {
         // TREE [*] name = newick;
         let eq = match line.find('=') {
             Some(i) => i,
-            None    => continue,
+            None => continue,
         };
-        let tree_name = line[4..eq].trim().trim_start_matches('*').trim().to_string();
+        let tree_name = line[4..eq]
+            .trim()
+            .trim_start_matches('*')
+            .trim()
+            .to_string();
         let newick_part = line[eq + 1..].trim().trim_end_matches(';').trim();
         let mut root = parse_newick_str(newick_part)?;
         if !translate.is_empty() {

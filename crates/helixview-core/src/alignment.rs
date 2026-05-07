@@ -1,4 +1,4 @@
-use crate::sequence::{Sequence, is_gap};
+use crate::sequence::{is_gap, Sequence};
 
 /// A named color-coded family of sequences that move together during
 /// sliding operations.
@@ -45,7 +45,10 @@ pub struct Alignment {
 
 impl Alignment {
     pub fn new(name: impl Into<String>) -> Self {
-        Self { name: name.into(), ..Default::default() }
+        Self {
+            name: name.into(),
+            ..Default::default()
+        }
     }
 
     /// Number of sequences (rows).
@@ -133,23 +136,31 @@ impl Alignment {
     /// Remove all unlocked gap columns that are pure gaps across all sequences.
     /// This is "Minimize Alignment".
     pub fn minimize(&mut self) {
-        if self.sequences.is_empty() { return; }
+        if self.sequences.is_empty() {
+            return;
+        }
         let cols = self.col_count();
         // Build a mask of columns to keep.
-        let keep: Vec<bool> = (0..cols).map(|c| {
-            // Keep if any sequence has a real residue at this column.
-            self.sequences.iter().any(|s| {
-                s.residues.get(c).map(|&b| !is_gap(b)).unwrap_or(false)
+        let keep: Vec<bool> = (0..cols)
+            .map(|c| {
+                // Keep if any sequence has a real residue at this column.
+                self.sequences
+                    .iter()
+                    .any(|s| s.residues.get(c).map(|&b| !is_gap(b)).unwrap_or(false))
             })
-        }).collect();
+            .collect();
 
         for seq in &mut self.sequences {
-            let new_residues: Vec<u8> = seq.residues.iter()
+            let new_residues: Vec<u8> = seq
+                .residues
+                .iter()
                 .enumerate()
                 .filter(|(i, _)| *keep.get(*i).unwrap_or(&false))
                 .map(|(_, &b)| b)
                 .collect();
-            let new_locks: Vec<bool> = seq.gap_locks.iter()
+            let new_locks: Vec<bool> = seq
+                .gap_locks
+                .iter()
                 .enumerate()
                 .filter(|(i, _)| *keep.get(*i).unwrap_or(&false))
                 .map(|(_, &l)| l)
@@ -190,7 +201,9 @@ impl Alignment {
         let cols = self.col_count();
         let mut freqs = vec![[0u32; 256]; cols];
         for seq in &self.sequences {
-            if !seq.seq_type.is_sequence() { continue; }
+            if !seq.seq_type.is_sequence() {
+                continue;
+            }
             for (col, &b) in seq.residues.iter().enumerate() {
                 if col < cols {
                     freqs[col][b.to_ascii_uppercase() as usize] += 1;
@@ -203,11 +216,15 @@ impl Alignment {
     /// The most common non-gap residue at `col` (uppercase byte).
     /// Returns `b'-'` when the column is all gaps, empty, or out of range.
     pub fn column_consensus_residue(&self, col: usize) -> u8 {
-        if col >= self.col_count() { return b'-'; }
+        if col >= self.col_count() {
+            return b'-';
+        }
         let mut counts = [0u32; 256];
-        let mut total  = 0u32;
+        let mut total = 0u32;
         for seq in &self.sequences {
-            if !seq.seq_type.is_sequence() { continue; }
+            if !seq.seq_type.is_sequence() {
+                continue;
+            }
             if let Some(&b) = seq.residues.get(col) {
                 let b = b.to_ascii_uppercase();
                 if !is_gap(b) {
@@ -216,8 +233,11 @@ impl Alignment {
                 }
             }
         }
-        if total == 0 { return b'-'; }
-        counts.iter()
+        if total == 0 {
+            return b'-';
+        }
+        counts
+            .iter()
             .enumerate()
             .max_by_key(|(_, &v)| v)
             .map(|(i, _)| i as u8)
@@ -227,22 +247,34 @@ impl Alignment {
     /// Fraction of non-gap residues at `col` that equal the consensus residue.
     /// Returns `0.0` when all residues are gaps or the column is out of range.
     pub fn column_identity(&self, col: usize) -> f32 {
-        if col >= self.col_count() { return 0.0; }
+        if col >= self.col_count() {
+            return 0.0;
+        }
         let consensus = self.column_consensus_residue(col);
-        if consensus == b'-' { return 0.0; }
-        let mut total    = 0u32;
+        if consensus == b'-' {
+            return 0.0;
+        }
+        let mut total = 0u32;
         let mut matching = 0u32;
         for seq in &self.sequences {
-            if !seq.seq_type.is_sequence() { continue; }
+            if !seq.seq_type.is_sequence() {
+                continue;
+            }
             if let Some(&b) = seq.residues.get(col) {
                 let b = b.to_ascii_uppercase();
                 if !is_gap(b) {
                     total += 1;
-                    if b == consensus { matching += 1; }
+                    if b == consensus {
+                        matching += 1;
+                    }
                 }
             }
         }
-        if total == 0 { 0.0 } else { matching as f32 / total as f32 }
+        if total == 0 {
+            0.0
+        } else {
+            matching as f32 / total as f32
+        }
     }
 
     /// Insert a gap (`b'-'`) at position `col` in every sequence.
@@ -271,18 +303,24 @@ impl Alignment {
 
     /// Returns `true` if every sequence has a gap character at position `col`.
     pub fn is_gap_column(&self, col: usize) -> bool {
-        if self.sequences.is_empty() { return false; }
-        self.sequences.iter().all(|s| {
-            s.residues.get(col).map(|&b| is_gap(b)).unwrap_or(false)
-        })
+        if self.sequences.is_empty() {
+            return false;
+        }
+        self.sequences
+            .iter()
+            .all(|s| s.residues.get(col).map(|&b| is_gap(b)).unwrap_or(false))
     }
 
     /// Move the sequence at index `from` to index `to`.
     /// No-op if `from == to` or either index is out of bounds.
     pub fn move_sequence(&mut self, from: usize, to: usize) {
-        if from == to { return; }
+        if from == to {
+            return;
+        }
         let len = self.sequences.len();
-        if from >= len || to >= len { return; }
+        if from >= len || to >= len {
+            return;
+        }
         let seq = self.sequences.remove(from);
         self.sequences.insert(to, seq);
     }
@@ -301,21 +339,28 @@ impl Alignment {
     /// Returns a Vec of entropy values (higher = more variable).
     pub fn column_entropy(&self) -> Vec<f64> {
         let freqs = self.column_frequencies();
-        let n_seqs = self.sequences.iter()
+        let n_seqs = self
+            .sequences
+            .iter()
             .filter(|s| s.seq_type.is_sequence())
             .count() as f64;
-        if n_seqs == 0.0 { return vec![0.0; freqs.len()]; }
+        if n_seqs == 0.0 {
+            return vec![0.0; freqs.len()];
+        }
 
-        freqs.iter().map(|col| {
-            let mut h = 0.0f64;
-            for &count in col.iter() {
-                if count > 0 {
-                    let p = count as f64 / n_seqs;
-                    h -= p * p.ln();
+        freqs
+            .iter()
+            .map(|col| {
+                let mut h = 0.0f64;
+                for &count in col.iter() {
+                    if count > 0 {
+                        let p = count as f64 / n_seqs;
+                        h -= p * p.ln();
+                    }
                 }
-            }
-            h
-        }).collect()
+                h
+            })
+            .collect()
     }
 }
 
@@ -343,7 +388,7 @@ mod tests {
     fn push_pads_shorter_sequence() {
         let mut aln = Alignment::new("test");
         aln.push(make_seq("a", b"ATCG"));
-        aln.push(make_seq("b", b"AT"));   // shorter — should be padded
+        aln.push(make_seq("b", b"AT")); // shorter — should be padded
         assert_eq!(aln.sequences[1].len(), 4);
         assert_eq!(aln.sequences[1].residues[2], b'~');
     }

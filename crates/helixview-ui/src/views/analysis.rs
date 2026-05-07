@@ -2,15 +2,15 @@
 
 use std::sync::Arc;
 
+use helixview_analysis::{calculate_tm, kyte_doolittle_profile, wallace_tm};
+use helixview_core::sequence::{is_gap, SequenceType};
+use helixview_core::{self, Alignment};
+use iced::widget::canvas::{Frame, Text as CanvasText};
 use iced::{
     alignment, mouse,
     widget::{button, canvas, column, container, row, scrollable, text},
     Background, Border, Color, Element, Font, Length, Pixels, Point, Rectangle, Size,
 };
-use iced::widget::canvas::{Frame, Text as CanvasText};
-use helixview_core::{self, Alignment};
-use helixview_core::sequence::{is_gap, SequenceType};
-use helixview_analysis::{kyte_doolittle_profile, calculate_tm, wallace_tm};
 
 use crate::app::Message;
 use crate::theme::palette;
@@ -19,21 +19,35 @@ use crate::theme::palette;
 
 /// Returns a fixed-width (280 px) analysis panel showing per-sequence stats
 /// and a column-identity bar chart.
-pub fn analysis_panel<'a>(
-    aln: &'a Arc<Alignment>,
-) -> Element<'a, Message> {
-
+pub fn analysis_panel<'a>(aln: &'a Arc<Alignment>) -> Element<'a, Message> {
     // Detect molecule type from the first sequence.
     // If seq_type is explicitly Protein, or residues contain amino-acid-only
     // letters (F, L, I, P, Q, E, W, Y, H, K, R, D, N, M), treat as protein.
-    let is_protein = aln.sequences.first().map(|s| {
-        s.seq_type == SequenceType::Protein
-            || s.residues.iter().any(|&b| matches!(
-                b.to_ascii_uppercase(),
-                b'F' | b'L' | b'I' | b'P' | b'Q' | b'E' | b'W' | b'Y'
-                    | b'H' | b'K' | b'R' | b'D' | b'N' | b'M'
-            ))
-    }).unwrap_or(false);
+    let is_protein = aln
+        .sequences
+        .first()
+        .map(|s| {
+            s.seq_type == SequenceType::Protein
+                || s.residues.iter().any(|&b| {
+                    matches!(
+                        b.to_ascii_uppercase(),
+                        b'F' | b'L'
+                            | b'I'
+                            | b'P'
+                            | b'Q'
+                            | b'E'
+                            | b'W'
+                            | b'Y'
+                            | b'H'
+                            | b'K'
+                            | b'R'
+                            | b'D'
+                            | b'N'
+                            | b'M'
+                    )
+                })
+        })
+        .unwrap_or(false);
 
     // Compute overall GC% for the alignment
     let (mut gc, mut atotal) = (0u64, 0u64);
@@ -42,11 +56,17 @@ pub fn analysis_panel<'a>(
             let b = b.to_ascii_uppercase();
             if !is_gap(b) {
                 atotal += 1;
-                if matches!(b, b'G' | b'C') { gc += 1; }
+                if matches!(b, b'G' | b'C') {
+                    gc += 1;
+                }
             }
         }
     }
-    let gc_pct = if atotal > 0 { gc as f32 / atotal as f32 * 100.0 } else { 0.0 };
+    let gc_pct = if atotal > 0 {
+        gc as f32 / atotal as f32 * 100.0
+    } else {
+        0.0
+    };
 
     // Hydrophobicity: show profile for first sequence.
     let hydro_seq: Option<helixview_core::Sequence> = aln.sequences.first().cloned();
@@ -186,15 +206,21 @@ fn stats_section<'a>(aln: &'a Arc<Alignment>) -> Element<'a, Message> {
 // ── Identity bar chart ────────────────────────────────────────────────────────
 
 fn identity_canvas<'a>(aln: &'a Arc<Alignment>) -> Element<'a, Message> {
-    canvas(IdentityBar { aln: Arc::clone(aln) })
-        .width(280)
-        .height(80)
-        .into()
+    canvas(IdentityBar {
+        aln: Arc::clone(aln),
+    })
+    .width(280)
+    .height(80)
+    .into()
 }
 
 // ── Alignment summary ─────────────────────────────────────────────────────────
 
-fn summary_section<'a>(aln: &'a Arc<Alignment>, gc_pct: f32, is_protein: bool) -> Element<'a, Message> {
+fn summary_section<'a>(
+    aln: &'a Arc<Alignment>,
+    gc_pct: f32,
+    is_protein: bool,
+) -> Element<'a, Message> {
     let seqs = aln.seq_count();
     let cols = aln.col_count();
     let gc_label = if is_protein {
@@ -202,26 +228,18 @@ fn summary_section<'a>(aln: &'a Arc<Alignment>, gc_pct: f32, is_protein: bool) -
     } else {
         format!("GC: {gc_pct:.1}%")
     };
-    let info = text(format!(
-        "{seqs} seqs × {cols} cols\n{gc_label}"
-    ))
-    .size(11)
-    .color(palette::TEXT)
-    .font(Font::MONOSPACE);
+    let info = text(format!("{seqs} seqs × {cols} cols\n{gc_label}"))
+        .size(11)
+        .color(palette::TEXT)
+        .font(Font::MONOSPACE);
 
-    container(info)
-        .padding([6, 8])
-        .width(Length::Fill)
-        .into()
+    container(info).padding([6, 8]).width(Length::Fill).into()
 }
 
 // ── Hydrophobicity profile canvas ─────────────────────────────────────────────
 
 fn hydro_canvas<'a>(seq: Option<helixview_core::Sequence>) -> Element<'a, Message> {
-    canvas(HydroPlot { seq })
-        .width(280)
-        .height(60)
-        .into()
+    canvas(HydroPlot { seq }).width(280).height(60).into()
 }
 
 struct HydroPlot {
@@ -233,18 +251,18 @@ impl canvas::Program<Message> for HydroPlot {
 
     fn draw(
         &self,
-        _state:   &(),
+        _state: &(),
         renderer: &iced::Renderer,
-        _theme:   &iced::Theme,
-        bounds:   Rectangle,
-        _cursor:  mouse::Cursor,
+        _theme: &iced::Theme,
+        bounds: Rectangle,
+        _cursor: mouse::Cursor,
     ) -> Vec<canvas::Geometry<iced::Renderer>> {
         let mut frame = Frame::new(renderer, bounds.size());
         frame.fill_rectangle(Point::ORIGIN, bounds.size(), palette::BG_PANEL);
 
         let seq = match &self.seq {
             Some(s) => s,
-            None    => return vec![frame.into_geometry()],
+            None => return vec![frame.into_geometry()],
         };
 
         const WINDOW: usize = 7;
@@ -284,19 +302,24 @@ impl canvas::Program<Message> for HydroPlot {
             frame.fill_rectangle(
                 Point::new(x, (h - zero_y) as f32),
                 Size::new(3.0_f32.min(bounds.width - x), 1.0),
-                Color { r: 0.4, g: 0.4, b: 0.4, a: 0.6 },
+                Color {
+                    r: 0.4,
+                    g: 0.4,
+                    b: 0.4,
+                    a: 0.6,
+                },
             );
             x += 6.0;
         }
 
         frame.fill_text(CanvasText {
-            content:  format!("KD window={WINDOW}"),
+            content: format!("KD window={WINDOW}"),
             position: Point::new(4.0, 2.0),
-            color:    palette::TEXT_DIM,
-            size:     Pixels(9.5),
-            font:     Font::MONOSPACE,
+            color: palette::TEXT_DIM,
+            size: Pixels(9.5),
+            font: Font::MONOSPACE,
             horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment:   alignment::Vertical::Top,
+            vertical_alignment: alignment::Vertical::Top,
             ..CanvasText::default()
         });
 
@@ -327,7 +350,10 @@ fn tm_section<'a>(seq: &Option<helixview_core::Sequence>) -> Element<'a, Message
         } else if raw.len() <= 13 {
             // Wallace rule for very short oligos
             let tm = wallace_tm(raw);
-            format!("Wallace rule: {tm:.1} °C\n(length {}, rule of 2+4)", raw.len())
+            format!(
+                "Wallace rule: {tm:.1} °C\n(length {}, rule of 2+4)",
+                raw.len()
+            )
         } else {
             match calculate_tm(raw) {
                 Some(result) => format!(
@@ -365,11 +391,11 @@ impl canvas::Program<Message> for IdentityBar {
 
     fn draw(
         &self,
-        _state:   &(),
+        _state: &(),
         renderer: &iced::Renderer,
-        _theme:   &iced::Theme,
-        bounds:   Rectangle,
-        _cursor:  mouse::Cursor,
+        _theme: &iced::Theme,
+        bounds: Rectangle,
+        _cursor: mouse::Cursor,
     ) -> Vec<canvas::Geometry<iced::Renderer>> {
         let mut frame = Frame::new(renderer, bounds.size());
         let w = bounds.width;
@@ -386,7 +412,7 @@ impl canvas::Program<Message> for IdentityBar {
         // Sample columns to fit within the canvas width (max 280 bars).
         let max_bars = w.floor() as usize;
         let step = if n_cols > max_bars {
-            (n_cols + max_bars - 1) / max_bars   // ceiling division
+            (n_cols + max_bars - 1) / max_bars // ceiling division
         } else {
             1
         };
@@ -397,7 +423,9 @@ impl canvas::Program<Message> for IdentityBar {
 
         for i in 0..num_bars {
             let col = i * step;
-            if col >= n_cols { break; }
+            if col >= n_cols {
+                break;
+            }
             let identity = self.aln.column_identity(col);
 
             let color = if identity >= 0.8 {
@@ -422,27 +450,32 @@ impl canvas::Program<Message> for IdentityBar {
         // 50% reference line (dashed approximation via short segments)
         let ref_y = chart_h * 0.5;
         let dash_len = 4.0f32;
-        let gap_len  = 3.0f32;
+        let gap_len = 3.0f32;
         let mut x = 0.0f32;
         while x < w {
             let seg_w = dash_len.min(w - x);
             frame.fill_rectangle(
                 Point::new(x, ref_y),
                 Size::new(seg_w, 1.0),
-                Color { r: 0.55, g: 0.55, b: 0.60, a: 0.7 },
+                Color {
+                    r: 0.55,
+                    g: 0.55,
+                    b: 0.60,
+                    a: 0.7,
+                },
             );
             x += dash_len + gap_len;
         }
 
         // "Identity" label in the top-left
         frame.fill_text(CanvasText {
-            content:  "Identity".to_string(),
+            content: "Identity".to_string(),
             position: Point::new(4.0, 3.0),
-            color:    palette::TEXT_DIM,
-            size:     Pixels(10.0),
-            font:     Font::MONOSPACE,
+            color: palette::TEXT_DIM,
+            size: Pixels(10.0),
+            font: Font::MONOSPACE,
             horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment:   alignment::Vertical::Top,
+            vertical_alignment: alignment::Vertical::Top,
             ..CanvasText::default()
         });
 

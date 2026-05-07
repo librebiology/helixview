@@ -4,25 +4,22 @@ use std::cell::Cell;
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
+use helixview_core::{layout_cladogram, LayoutNode, PhyloTree};
 use iced::{
     alignment, mouse,
     widget::{
-        button, canvas::{self, Frame, Path, Stroke, Text},
-        column, row, text,
-        horizontal_space,
+        button,
+        canvas::{self, Frame, Path, Stroke, Text},
+        column, horizontal_space, row, text,
     },
     Color, Element, Font, Length, Pixels, Point, Rectangle, Size,
 };
-use helixview_core::{layout_cladogram, LayoutNode, PhyloTree};
 
 use crate::app::Message;
 
 // ── Public entry ──────────────────────────────────────────────────────────────
 
-pub fn tree_view<'a>(
-    tree:     &Arc<PhyloTree>,
-    selected: &BTreeSet<String>,
-) -> Element<'a, Message> {
+pub fn tree_view<'a>(tree: &Arc<PhyloTree>, selected: &BTreeSet<String>) -> Element<'a, Message> {
     let leaf_count = tree.leaf_count();
 
     let toolbar = {
@@ -53,7 +50,7 @@ pub fn tree_view<'a>(
     };
 
     let canvas_widget = iced::widget::canvas(TreeCanvas {
-        tree:     Arc::clone(tree),
+        tree: Arc::clone(tree),
         selected: selected.clone(),
     })
     .width(Length::Fill)
@@ -68,18 +65,21 @@ pub fn tree_view<'a>(
 // ── Canvas ────────────────────────────────────────────────────────────────────
 
 struct TreeCanvas {
-    tree:     Arc<PhyloTree>,
+    tree: Arc<PhyloTree>,
     selected: BTreeSet<String>,
 }
 
 pub struct TreeCanvasState {
-    cache:    canvas::Cache,
+    cache: canvas::Cache,
     last_key: Cell<u64>,
 }
 
 impl Default for TreeCanvasState {
     fn default() -> Self {
-        Self { cache: canvas::Cache::default(), last_key: Cell::new(u64::MAX) }
+        Self {
+            cache: canvas::Cache::default(),
+            last_key: Cell::new(u64::MAX),
+        }
     }
 }
 
@@ -88,10 +88,10 @@ impl canvas::Program<Message> for TreeCanvas {
 
     fn update(
         &self,
-        _state:  &mut TreeCanvasState,
-        event:   canvas::Event,
-        bounds:  Rectangle,
-        cursor:  mouse::Cursor,
+        _state: &mut TreeCanvasState,
+        event: canvas::Event,
+        bounds: Rectangle,
+        cursor: mouse::Cursor,
     ) -> (canvas::event::Status, Option<Message>) {
         if let canvas::Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) = event {
             if let mouse::Cursor::Available(pt) = cursor {
@@ -100,7 +100,7 @@ impl canvas::Program<Message> for TreeCanvas {
                     let w = bounds.width;
                     let h = bounds.height;
                     const MARGIN_X: f32 = 20.0;
-                    const LABEL_W:  f32 = 160.0;
+                    const LABEL_W: f32 = 160.0;
                     const MARGIN_Y: f32 = 10.0;
                     let plot_w = (w - MARGIN_X - LABEL_W).max(1.0);
                     let plot_h = (h - MARGIN_Y * 2.0).max(1.0);
@@ -111,7 +111,9 @@ impl canvas::Program<Message> for TreeCanvas {
                     let nodes = layout_cladogram(&self.tree.root);
 
                     for node in &nodes {
-                        if !node.is_leaf { continue; }
+                        if !node.is_leaf {
+                            continue;
+                        }
                         let nx = MARGIN_X + node.x * plot_w;
                         let ny = MARGIN_Y + node.y * plot_h;
                         let dist = ((rel.x - nx).powi(2) + (rel.y - ny).powi(2)).sqrt();
@@ -130,11 +132,11 @@ impl canvas::Program<Message> for TreeCanvas {
 
     fn draw(
         &self,
-        state:    &TreeCanvasState,
+        state: &TreeCanvasState,
         renderer: &iced::Renderer,
-        _theme:   &iced::Theme,
-        bounds:   Rectangle,
-        _cursor:  mouse::Cursor,
+        _theme: &iced::Theme,
+        bounds: Rectangle,
+        _cursor: mouse::Cursor,
     ) -> Vec<canvas::Geometry<iced::Renderer>> {
         let sel_len = self.selected.len() as u64;
         let key = (Arc::as_ptr(&self.tree) as u64)
@@ -150,12 +152,12 @@ impl canvas::Program<Message> for TreeCanvas {
             // via the cache key path — we rebuild nodes inside the closure below.
         }
 
-        let tree     = Arc::clone(&self.tree);
+        let tree = Arc::clone(&self.tree);
         let selected = self.selected.clone();
 
         const SNAP: f32 = 32.0;
         let snapped = Size {
-            width:  (bounds.width  / SNAP).ceil() * SNAP,
+            width: (bounds.width / SNAP).ceil() * SNAP,
             height: (bounds.height / SNAP).ceil() * SNAP,
         };
 
@@ -171,24 +173,23 @@ impl canvas::Program<Message> for TreeCanvas {
 // ── Drawing ───────────────────────────────────────────────────────────────────
 
 fn draw_tree(
-    frame:    &mut Frame<iced::Renderer>,
-    size:     Size,
-    nodes:    &[LayoutNode],
+    frame: &mut Frame<iced::Renderer>,
+    size: Size,
+    nodes: &[LayoutNode],
     selected: &BTreeSet<String>,
 ) {
     use crate::theme::palette;
 
     frame.fill_rectangle(Point::ORIGIN, size, palette::BG_PANEL);
 
-    let margin_x  = 20.0f32;
+    let margin_x = 20.0f32;
     let label_area = 160.0f32;
-    let margin_y  = 10.0f32;
-    let plot_w    = (size.width - margin_x - label_area).max(1.0);
-    let plot_h    = (size.height - margin_y * 2.0).max(1.0);
+    let margin_y = 10.0f32;
+    let plot_w = (size.width - margin_x - label_area).max(1.0);
+    let plot_h = (size.height - margin_y * 2.0).max(1.0);
 
-    let to_pt = |n: &LayoutNode| -> Point {
-        Point::new(margin_x + n.x * plot_w, margin_y + n.y * plot_h)
-    };
+    let to_pt =
+        |n: &LayoutNode| -> Point { Point::new(margin_x + n.x * plot_w, margin_y + n.y * plot_h) };
 
     // Draw branches
     for node in nodes {
@@ -209,10 +210,7 @@ fn draw_tree(
             } else {
                 palette::TEXT_DIM
             };
-            frame.stroke(
-                &branch,
-                Stroke::default().with_color(color).with_width(1.5),
-            );
+            frame.stroke(&branch, Stroke::default().with_color(color).with_width(1.5));
         }
 
         // Support value on internal nodes
@@ -220,13 +218,13 @@ fn draw_tree(
             if let Some(sup) = node.support {
                 if sup >= 50.0 {
                     frame.fill_text(Text {
-                        content:  format!("{:.0}", sup),
+                        content: format!("{:.0}", sup),
                         position: Point::new(pt.x + 2.0, pt.y - 6.0),
-                        color:    Color::from_rgb(0.45, 0.45, 0.45),
-                        size:     Pixels(7.5),
-                        font:     Font::MONOSPACE,
+                        color: Color::from_rgb(0.45, 0.45, 0.45),
+                        size: Pixels(7.5),
+                        font: Font::MONOSPACE,
                         horizontal_alignment: alignment::Horizontal::Left,
-                        vertical_alignment:   alignment::Vertical::Bottom,
+                        vertical_alignment: alignment::Vertical::Bottom,
                         ..Text::default()
                     });
                 }
@@ -236,7 +234,9 @@ fn draw_tree(
 
     // Draw leaf tips and labels (on top of branches)
     for node in nodes {
-        if !node.is_leaf { continue; }
+        if !node.is_leaf {
+            continue;
+        }
         let pt = to_pt(node);
         let is_sel = selected.contains(&node.name);
 
@@ -257,13 +257,17 @@ fn draw_tree(
             node.name.clone()
         };
         frame.fill_text(Text {
-            content:  label,
+            content: label,
             position: Point::new(label_x, pt.y),
-            color:    if is_sel { Color::from_rgb(0.1, 0.4, 0.9) } else { palette::TEXT_DIM },
-            size:     Pixels(10.0),
-            font:     Font::MONOSPACE,
+            color: if is_sel {
+                Color::from_rgb(0.1, 0.4, 0.9)
+            } else {
+                palette::TEXT_DIM
+            },
+            size: Pixels(10.0),
+            font: Font::MONOSPACE,
             horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment:   alignment::Vertical::Center,
+            vertical_alignment: alignment::Vertical::Center,
             ..Text::default()
         });
     }

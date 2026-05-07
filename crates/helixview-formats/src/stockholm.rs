@@ -1,27 +1,31 @@
+use crate::{FormatError, Result};
 use helixview_core::{
     alignment::Alignment,
     sequence::{Sequence, SequenceType},
 };
-use crate::{FormatError, Result};
 
 pub fn parse_bytes(data: &[u8], name: &str) -> Result<Alignment> {
-    let text = std::str::from_utf8(data)
-        .map_err(|e| FormatError::Parse(format!("Invalid UTF-8: {e}")))?;
+    let text =
+        std::str::from_utf8(data).map_err(|e| FormatError::Parse(format!("Invalid UTF-8: {e}")))?;
     parse_str(text, name)
 }
 
 pub fn parse_str(text: &str, name: &str) -> Result<Alignment> {
-    let mut order:   Vec<String>                              = Vec::new();
+    let mut order: Vec<String> = Vec::new();
     let mut residues: std::collections::HashMap<String, Vec<u8>> = std::collections::HashMap::new();
 
     for line in text.lines() {
         let line = line.trim_end();
 
         // End of block marker
-        if line == "//" { continue; }
+        if line == "//" {
+            continue;
+        }
 
         // Skip blank lines and all annotation/markup lines (#=... or leading #)
-        if line.is_empty() || line.starts_with('#') { continue; }
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
 
         // Sequence line: "name  residues"
         let mut parts = line.splitn(2, |c: char| c.is_ascii_whitespace());
@@ -33,7 +37,9 @@ pub fn parse_str(text: &str, name: &str) -> Result<Alignment> {
             Some(r) => r.trim(),
             None => continue,
         };
-        if res_str.is_empty() { continue; }
+        if res_str.is_empty() {
+            continue;
+        }
 
         if !residues.contains_key(&seq_name) {
             order.push(seq_name.clone());
@@ -46,7 +52,9 @@ pub fn parse_str(text: &str, name: &str) -> Result<Alignment> {
     }
 
     if order.is_empty() {
-        return Err(FormatError::Parse("No sequences found in Stockholm data".into()));
+        return Err(FormatError::Parse(
+            "No sequences found in Stockholm data".into(),
+        ));
     }
 
     let mut aln = Alignment::new(name);
@@ -62,14 +70,21 @@ pub fn parse_str(text: &str, name: &str) -> Result<Alignment> {
 }
 
 fn guess_type(residues: &[u8]) -> SequenceType {
-    let non_gap: Vec<u8> = residues.iter()
+    let non_gap: Vec<u8> = residues
+        .iter()
         .copied()
         .filter(|&b| !matches!(b, b'-' | b'~' | b'.' | b'*'))
         .collect();
-    if non_gap.is_empty() { return SequenceType::Unknown; }
+    if non_gap.is_empty() {
+        return SequenceType::Unknown;
+    }
     let nuc_set: &[u8] = b"ACGTURYN";
-    let is_protein = non_gap.iter().any(|&b| !nuc_set.contains(&b.to_ascii_uppercase()));
-    if is_protein { return SequenceType::Protein; }
+    let is_protein = non_gap
+        .iter()
+        .any(|&b| !nuc_set.contains(&b.to_ascii_uppercase()));
+    if is_protein {
+        return SequenceType::Protein;
+    }
     if non_gap.iter().any(|&b| b.to_ascii_uppercase() == b'U') {
         SequenceType::Rna
     } else {

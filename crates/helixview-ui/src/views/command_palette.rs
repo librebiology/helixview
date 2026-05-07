@@ -1,65 +1,68 @@
 //! Command palette overlay — Ctrl+P fuzzy search over all app commands.
 
+use crate::app::Message;
 use iced::{
     widget::{button, column, container, row, text, text_input},
     Background, Border, Color, Element, Length,
 };
-use crate::app::Message;
 
 // All palette entries: (display label, message to fire on selection).
 // Only simple, parameter-free messages are listed here.
 const COMMANDS: &[(&str, fn() -> Message)] = &[
     // File
-    ("Open file",                   || Message::OpenFileDialog),
-    ("Save file",                   || Message::SaveFileDialog),
-    ("New alignment",               || Message::NewAlignment),
-    ("New tab",                     || Message::NewTab),
-    ("Save project",                || Message::SaveProjectDialog),
-    ("Open project",                || Message::OpenProjectDialog),
+    ("Open file", || Message::OpenFileDialog),
+    ("Save file", || Message::SaveFileDialog),
+    ("New alignment", || Message::NewAlignment),
+    ("New tab", || Message::NewTab),
+    ("Save project", || Message::SaveProjectDialog),
+    ("Open project", || Message::OpenProjectDialog),
     // Edit
-    ("Undo",                        || Message::Undo),
-    ("Redo",                        || Message::Redo),
-    ("Select all",                  || Message::SelectAll),
-    ("Deselect all",                || Message::SelectNone),
+    ("Undo", || Message::Undo),
+    ("Redo", || Message::Redo),
+    ("Select all", || Message::SelectAll),
+    ("Deselect all", || Message::SelectNone),
     // Analysis
-    ("Pairwise alignment",          || Message::RunPairwise),
-    ("ORF finder",                  || Message::RunOrfFinder),
-    ("Six-frame translation",       || Message::RunSixFrame),
-    ("Composition analysis",        || Message::ShowComposition),
-    ("Hydrophobicity profile",      || Message::ShowHydrophobicity),
-    ("Oligo Tm calculator",         || Message::ShowOligoTm),
-    ("Identity matrix",             || Message::ShowIdentityMatrix),
-    ("Dot plot",                    || Message::ShowDotPlot),
-    ("Conserved regions",           || Message::ShowConservation),
-    ("Column statistics",           || Message::ShowColSummary),
-    ("Taxonomy table",              || Message::ShowTaxonomy),
-    ("Plasmid map",                 || Message::ShowPlasmid),
-    ("BLAST",                       || Message::ToggleBlastPanel),
+    ("Pairwise alignment", || Message::RunPairwise),
+    ("ORF finder", || Message::RunOrfFinder),
+    ("Six-frame translation", || Message::RunSixFrame),
+    ("Composition analysis", || Message::ShowComposition),
+    ("Hydrophobicity profile", || Message::ShowHydrophobicity),
+    ("Oligo Tm calculator", || Message::ShowOligoTm),
+    ("Identity matrix", || Message::ShowIdentityMatrix),
+    ("Dot plot", || Message::ShowDotPlot),
+    ("Conserved regions", || Message::ShowConservation),
+    ("Column statistics", || Message::ShowColSummary),
+    ("Taxonomy table", || Message::ShowTaxonomy),
+    ("Plasmid map", || Message::ShowPlasmid),
+    ("BLAST", || Message::ToggleBlastPanel),
     // View
-    ("Toggle analysis panel",       || Message::ToggleAnalysis),
-    ("Toggle features",             || Message::ToggleFeatures),
-    ("Color editor",                || Message::OpenColorEditor),
-    ("Zoom in",                     || Message::ZoomIn),
-    ("Zoom out",                    || Message::ZoomOut),
-    ("Reset zoom",                  || Message::ZoomReset),
-    ("Toggle search bar",           || Message::ToggleSearch),
+    ("Toggle analysis panel", || Message::ToggleAnalysis),
+    ("Toggle features", || Message::ToggleFeatures),
+    ("Color editor", || Message::OpenColorEditor),
+    ("Zoom in", || Message::ZoomIn),
+    ("Zoom out", || Message::ZoomOut),
+    ("Reset zoom", || Message::ZoomReset),
+    ("Toggle search bar", || Message::ToggleSearch),
     // Export
-    ("Export SVG",                  || Message::ExportSvgDialog),
-    ("Export PDF",                  || Message::ExportPdfDialog),
-    ("Export shaded figure (SVG)",  || Message::ShowShadedExportDialog),
-    ("Export text alignment",       || Message::ShowTextExport),
+    ("Export SVG", || Message::ExportSvgDialog),
+    ("Export PDF", || Message::ExportPdfDialog),
+    ("Export shaded figure (SVG)", || {
+        Message::ShowShadedExportDialog
+    }),
+    ("Export text alignment", || Message::ShowTextExport),
     // External tools
-    ("Accessory apps",              || Message::ShowAccessories),
-    ("Create BLAST database",       || Message::CreateBlastDbDialog),
+    ("Accessory apps", || Message::ShowAccessories),
+    ("Create BLAST database", || Message::CreateBlastDbDialog),
     // Settings
-    ("Preferences",                 || Message::OpenPrefs),
-    ("Keyboard shortcuts",          || Message::ShowHelp),
+    ("Preferences", || Message::OpenPrefs),
+    ("Keyboard shortcuts", || Message::ShowHelp),
 ];
 
 pub fn command_palette<'a>(query: &str, selected: usize) -> Element<'a, Message> {
     // Filter commands by query (case-insensitive substring match).
     let q = query.to_lowercase();
-    let matches: Vec<(usize, &(&str, fn() -> Message))> = COMMANDS.iter()
+    let matches: Vec<(usize, &(&str, fn() -> Message))> = COMMANDS
+        .iter()
         .enumerate()
         .filter(|(_, (label, _))| q.is_empty() || label.to_lowercase().contains(&q))
         .collect();
@@ -85,19 +88,21 @@ pub fn command_palette<'a>(query: &str, selected: usize) -> Element<'a, Message>
         } else {
             Color::WHITE
         };
-        let txt_color = if is_sel { Color::WHITE } else { Color::from_rgb(0.15, 0.15, 0.20) };
+        let txt_color = if is_sel {
+            Color::WHITE
+        } else {
+            Color::from_rgb(0.15, 0.15, 0.20)
+        };
         let orig = orig_idx;
         list = list.push(
             button(
-                container(
-                    text(label.to_string()).size(13).color(txt_color),
-                )
-                .padding([6, 14])
-                .width(Length::Fill)
-                .style(move |_| container::Style {
-                    background: Some(Background::Color(bg)),
-                    ..Default::default()
-                }),
+                container(text(label.to_string()).size(13).color(txt_color))
+                    .padding([6, 14])
+                    .width(Length::Fill)
+                    .style(move |_| container::Style {
+                        background: Some(Background::Color(bg)),
+                        ..Default::default()
+                    }),
             )
             .width(Length::Fill)
             .style(|_, _| button::Style {
@@ -112,7 +117,9 @@ pub fn command_palette<'a>(query: &str, selected: usize) -> Element<'a, Message>
 
     if matches.is_empty() {
         let empty: Element<Message> = container(
-            text("No commands match").size(12).color(Color::from_rgb(0.5, 0.5, 0.5))
+            text("No commands match")
+                .size(12)
+                .color(Color::from_rgb(0.5, 0.5, 0.5)),
         )
         .padding([10, 14])
         .into();
@@ -136,9 +143,7 @@ pub fn command_palette<'a>(query: &str, selected: usize) -> Element<'a, Message>
             iced::widget::scrollable(list)
                 .height(Length::Fixed(320.0))
                 .width(Length::Fill),
-            container(hint)
-                .padding([4, 14])
-                .width(Length::Fill),
+            container(hint).padding([4, 14]).width(Length::Fill),
         ]
         .spacing(0),
     )
@@ -163,7 +168,12 @@ pub fn command_palette<'a>(query: &str, selected: usize) -> Element<'a, Message>
         container(inner)
             .align_x(iced::alignment::Horizontal::Center)
             .width(Length::Fill)
-            .padding(iced::Padding { top: 60.0, right: 0.0, bottom: 0.0, left: 0.0 }),
+            .padding(iced::Padding {
+                top: 60.0,
+                right: 0.0,
+                bottom: 0.0,
+                left: 0.0,
+            }),
     )
     .width(Length::Fill)
     .height(Length::Fill)
@@ -182,7 +192,8 @@ pub fn fire(orig_idx: usize) -> Option<Message> {
 /// Return the original COMMANDS index of the `visible_idx`-th item matching `query`.
 pub fn resolve_selected(query: &str, visible_idx: usize) -> Option<usize> {
     let q = query.to_lowercase();
-    COMMANDS.iter()
+    COMMANDS
+        .iter()
         .enumerate()
         .filter(|(_, (label, _))| q.is_empty() || label.to_lowercase().contains(&q))
         .nth(visible_idx)
@@ -192,7 +203,8 @@ pub fn resolve_selected(query: &str, visible_idx: usize) -> Option<usize> {
 /// Count how many commands match `query`.
 pub fn match_count(query: &str) -> usize {
     let q = query.to_lowercase();
-    COMMANDS.iter()
+    COMMANDS
+        .iter()
         .filter(|(label, _)| q.is_empty() || label.to_lowercase().contains(&q))
         .count()
 }

@@ -6,24 +6,24 @@
 //! Sequences with `SequenceType::Comment / SequenceMask / RnaStructureMask`
 //! are excluded from the analysis.
 
-use std::collections::HashMap;
-use rayon::prelude::*;
 use helixview_core::{Alignment as SeqAlignment, SequenceType};
+use rayon::prelude::*;
+use std::collections::HashMap;
 
 /// A single (column_i, column_j) MI result.
 #[derive(Debug, Clone)]
 pub struct MiPair {
-    pub col_a:     usize,
-    pub col_b:     usize,
+    pub col_a: usize,
+    pub col_b: usize,
     /// Raw mutual information in nats.
-    pub mi:        f64,
+    pub mi: f64,
     /// Number of paired observations used.
-    pub n_obs:     usize,
+    pub n_obs: usize,
     /// Number of distinct Watson-Crick pair types observed (0-6).
     /// Canonical: A-U, U-A, G-C, C-G; wobble: G-U, U-G.
-    pub wc_types:  u8,
+    pub wc_types: u8,
     /// Fraction of observations that are Watson-Crick complementary.
-    pub wc_frac:   f64,
+    pub wc_frac: f64,
     /// Covariation score = wc_types × MI (BioEdit-style composite).
     pub cov_score: f64,
 }
@@ -45,7 +45,9 @@ pub struct MiResult {
 impl MiResult {
     /// Get the MI value for columns i and j (order-independent).
     pub fn get(&self, i: usize, j: usize) -> f64 {
-        if i == j { return 0.0; }
+        if i == j {
+            return 0.0;
+        }
         let (a, b) = if i < j { (i, j) } else { (j, i) };
         let idx = upper_idx(a, b, self.n_cols);
         self.values.get(idx).copied().unwrap_or(0.0)
@@ -67,24 +69,32 @@ fn upper_idx(i: usize, j: usize, n: usize) -> usize {
 /// * `min_obs` – minimum number of non-gap pairs required to compute MI for a
 ///   column pair (pairs below this threshold get MI = 0).
 /// * `top_n`   – how many top pairs to include in `MiResult::top_pairs`.
-pub fn mutual_information(
-    aln:     &SeqAlignment,
-    min_obs: usize,
-    top_n:   usize,
-) -> MiResult {
+pub fn mutual_information(aln: &SeqAlignment, min_obs: usize, top_n: usize) -> MiResult {
     let ncols = aln.col_count();
     if ncols < 2 {
-        return MiResult { n_cols: ncols, values: vec![], top_pairs: vec![], top_covarying: vec![] };
+        return MiResult {
+            n_cols: ncols,
+            values: vec![],
+            top_pairs: vec![],
+            top_covarying: vec![],
+        };
     }
 
     // Only biological sequences.
-    let seqs: Vec<&[u8]> = aln.sequences.iter()
+    let seqs: Vec<&[u8]> = aln
+        .sequences
+        .iter()
         .filter(|s| s.seq_type.is_sequence())
         .map(|s| s.residues.as_slice())
         .collect();
     let nseqs = seqs.len();
     if nseqs == 0 {
-        return MiResult { n_cols: ncols, values: vec![], top_pairs: vec![], top_covarying: vec![] };
+        return MiResult {
+            n_cols: ncols,
+            values: vec![],
+            top_pairs: vec![],
+            top_covarying: vec![],
+        };
     }
 
     // Precompute per-column residue vectors (uppercase, gap → None).
@@ -93,7 +103,11 @@ pub fn mutual_information(
             seqs.iter()
                 .map(|s| {
                     let b = *s.get(c).unwrap_or(&b'-');
-                    if is_gap(b) { None } else { Some(b.to_ascii_uppercase()) }
+                    if is_gap(b) {
+                        None
+                    } else {
+                        Some(b.to_ascii_uppercase())
+                    }
                 })
                 .collect()
         })
@@ -105,10 +119,11 @@ pub fn mutual_information(
 
     // Build list of (i, j, flat_idx) so we can parallelise.
     let pairs: Vec<(usize, usize, usize)> = (0..ncols)
-        .flat_map(|i| (i+1..ncols).map(move |j| (i, j, upper_idx(i, j, ncols))))
+        .flat_map(|i| (i + 1..ncols).map(move |j| (i, j, upper_idx(i, j, ncols))))
         .collect();
 
-    let mi_vals: Vec<(usize, f64)> = pairs.par_iter()
+    let mi_vals: Vec<(usize, f64)> = pairs
+        .par_iter()
         .map(|&(i, j, flat_idx)| {
             let mi = compute_mi_pair(&cols[i], &cols[j], min_obs);
             (flat_idx, mi)
@@ -120,12 +135,21 @@ pub fn mutual_information(
     }
 
     // Collect top pairs with covariation annotation.
-    let mut pair_list: Vec<MiPair> = pairs.iter()
+    let mut pair_list: Vec<MiPair> = pairs
+        .iter()
         .map(|&(i, j, flat_idx)| {
             let mi = values[flat_idx];
             let (n_obs, wc_types, wc_frac) = covariation_stats(&cols[i], &cols[j]);
             let cov_score = (wc_types as f64) * mi;
-            MiPair { col_a: i, col_b: j, mi, n_obs, wc_types, wc_frac, cov_score }
+            MiPair {
+                col_a: i,
+                col_b: j,
+                mi,
+                n_obs,
+                wc_types,
+                wc_frac,
+                cov_score,
+            }
         })
         .filter(|p| p.mi > 0.0)
         .collect();
@@ -136,7 +160,12 @@ pub fn mutual_information(
     let mut cov_list = pair_list.clone();
     cov_list.sort_by(|a, b| b.cov_score.partial_cmp(&a.cov_score).unwrap());
 
-    MiResult { n_cols: ncols, values, top_pairs: pair_list, top_covarying: cov_list }
+    MiResult {
+        n_cols: ncols,
+        values,
+        top_pairs: pair_list,
+        top_covarying: cov_list,
+    }
 }
 
 fn compute_mi_pair(col_a: &[Option<u8>], col_b: &[Option<u8>], min_obs: usize) -> f64 {
@@ -148,7 +177,9 @@ fn compute_mi_pair(col_a: &[Option<u8>], col_b: &[Option<u8>], min_obs: usize) -
             n += 1;
         }
     }
-    if (n as usize) < min_obs { return 0.0; }
+    if (n as usize) < min_obs {
+        return 0.0;
+    }
     let nf = n as f64;
 
     // Marginals.
@@ -161,10 +192,12 @@ fn compute_mi_pair(col_a: &[Option<u8>], col_b: &[Option<u8>], min_obs: usize) -
 
     let mut mi = 0.0_f64;
     for (&(ra, rb), &cnt) in &joint {
-        if cnt == 0 { continue; }
+        if cnt == 0 {
+            continue;
+        }
         let p_ab = cnt as f64 / nf;
-        let p_a  = *marg_a.get(&ra).unwrap_or(&0) as f64 / nf;
-        let p_b  = *marg_b.get(&rb).unwrap_or(&0) as f64 / nf;
+        let p_a = *marg_a.get(&ra).unwrap_or(&0) as f64 / nf;
+        let p_b = *marg_b.get(&rb).unwrap_or(&0) as f64 / nf;
         if p_a > 0.0 && p_b > 0.0 {
             mi += p_ab * (p_ab / (p_a * p_b)).ln();
         }
@@ -191,7 +224,11 @@ fn covariation_stats(col_a: &[Option<u8>], col_b: &[Option<u8>]) -> (usize, u8, 
     }
 
     let wc_types = wc_seen.iter().filter(|&&v| v).count() as u8;
-    let wc_frac  = if n_obs > 0 { n_wc as f64 / n_obs as f64 } else { 0.0 };
+    let wc_frac = if n_obs > 0 {
+        n_wc as f64 / n_obs as f64
+    } else {
+        0.0
+    };
     (n_obs, wc_types, wc_frac)
 }
 
@@ -225,10 +262,15 @@ mod tests {
     use helixview_core::Alignment;
 
     fn make_aln(seqs: &[&[u8]]) -> Alignment {
-        let sequences = seqs.iter().enumerate()
+        let sequences = seqs
+            .iter()
+            .enumerate()
             .map(|(i, s)| Sequence::new(format!("s{i}"), s.to_vec()))
             .collect();
-        Alignment { sequences, ..Default::default() }
+        Alignment {
+            sequences,
+            ..Default::default()
+        }
     }
 
     #[test]
@@ -254,10 +296,21 @@ mod tests {
         // Col 0 → Col 1: A→U and G→C — two distinct canonical WC pair types.
         let aln = make_aln(&[b"AU", b"AU", b"GC", b"GC"]);
         let res = mutual_information(&aln, 1, 10);
-        let pair = res.top_covarying.first().expect("expected at least one pair");
+        let pair = res
+            .top_covarying
+            .first()
+            .expect("expected at least one pair");
         assert_eq!((pair.col_a, pair.col_b), (0, 1));
-        assert!(pair.wc_types >= 2, "expected wc_types≥2, got {}", pair.wc_types);
-        assert!((pair.wc_frac - 1.0).abs() < 1e-6, "expected wc_frac=1.0, got {}", pair.wc_frac);
+        assert!(
+            pair.wc_types >= 2,
+            "expected wc_types≥2, got {}",
+            pair.wc_types
+        );
+        assert!(
+            (pair.wc_frac - 1.0).abs() < 1e-6,
+            "expected wc_frac=1.0, got {}",
+            pair.wc_frac
+        );
         assert!(pair.cov_score > 0.0);
     }
 
@@ -277,8 +330,12 @@ mod tests {
         let res = mutual_information(&aln, 1, 10);
         for p in &res.top_covarying {
             let expected = p.wc_types as f64 * p.mi;
-            assert!((p.cov_score - expected).abs() < 1e-10,
-                "cov_score {} ≠ wc_types×MI {}", p.cov_score, expected);
+            assert!(
+                (p.cov_score - expected).abs() < 1e-10,
+                "cov_score {} ≠ wc_types×MI {}",
+                p.cov_score,
+                expected
+            );
         }
     }
 }

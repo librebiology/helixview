@@ -1,29 +1,37 @@
 //! Text alignment export options dialog.
 
+use crate::app::Message;
+use crate::text_export::TextExportOptions;
+use crate::theme::palette;
 use iced::{
     widget::{button, checkbox, column, container, row, slider, text},
     Alignment, Background, Color, Element, Length,
 };
-use crate::app::Message;
-use crate::text_export::TextExportOptions;
-use crate::theme::palette;
 
 pub fn text_export_dialog<'a>(opts: &TextExportOptions, preview: &str) -> Element<'a, Message> {
     // ── Controls toolbar ──────────────────────────────────────────────────────
     let rpr_ctrl = row![
         text("Residues/row:").size(12).color(palette::TEXT_DIM),
-        slider(10u32..=120, opts.residues_per_row as u32,
-            |v| Message::TextExportResPerRow(v as usize)).width(100),
-        text(format!("{}", opts.residues_per_row)).size(12).color(palette::TEXT),
+        slider(10u32..=120, opts.residues_per_row as u32, |v| {
+            Message::TextExportResPerRow(v as usize)
+        })
+        .width(100),
+        text(format!("{}", opts.residues_per_row))
+            .size(12)
+            .color(palette::TEXT),
     ]
     .spacing(6)
     .align_y(Alignment::Center);
 
     let tc_ctrl = row![
         text("Title width:").size(12).color(palette::TEXT_DIM),
-        slider(4u32..=40, opts.title_chars as u32,
-            |v| Message::TextExportTitleChars(v as usize)).width(100),
-        text(format!("{}", opts.title_chars)).size(12).color(palette::TEXT),
+        slider(4u32..=40, opts.title_chars as u32, |v| {
+            Message::TextExportTitleChars(v as usize)
+        })
+        .width(100),
+        text(format!("{}", opts.title_chars))
+            .size(12)
+            .color(palette::TEXT),
     ]
     .spacing(6)
     .align_y(Alignment::Center);
@@ -49,7 +57,9 @@ pub fn text_export_dialog<'a>(opts: &TextExportOptions, preview: &str) -> Elemen
     let toolbar = container(
         row![
             close_btn,
-            text("Export Alignment as Text").size(14).color(palette::TEXT),
+            text("Export Alignment as Text")
+                .size(14)
+                .color(palette::TEXT),
             iced::widget::horizontal_space(),
             rpr_ctrl,
             tc_ctrl,

@@ -1,12 +1,12 @@
 //! BLAST results view — shows hits table with import buttons.
 
-use iced::{
-    Background, Border, Element, Font, Length,
-    widget::{button, column, container, row, scrollable, text},
-};
 use crate::app::{BlastState, Message};
 use crate::blast::BlastHit;
 use crate::theme::palette;
+use iced::{
+    widget::{button, column, container, row, scrollable, text},
+    Background, Border, Element, Font, Length,
+};
 
 /// Render the BLAST panel as a full-screen results view.
 pub fn blast_view<'a>(state: &'a BlastState, rid: Option<&'a str>) -> Element<'a, Message> {
@@ -33,20 +33,18 @@ pub fn blast_view<'a>(state: &'a BlastState, rid: Option<&'a str>) -> Element<'a
     };
 
     let header = container(
-        row(
-            std::iter::once(back_btn.into())
+        row(std::iter::once(back_btn.into())
             .chain(std::iter::once(iced::widget::horizontal_space().into()))
             .chain(std::iter::once(
                 text(header_text)
                     .size(14)
                     .color(palette::TEXT)
                     .font(Font::MONOSPACE)
-                    .into()
+                    .into(),
             ))
             .chain(std::iter::once(iced::widget::horizontal_space().into()))
             .chain(check_btn.into_iter())
-            .collect::<Vec<Element<'a, Message>>>()
-        )
+            .collect::<Vec<Element<'a, Message>>>())
         .spacing(8)
         .align_y(iced::Alignment::Center)
         .padding([4, 10])
@@ -55,41 +53,54 @@ pub fn blast_view<'a>(state: &'a BlastState, rid: Option<&'a str>) -> Element<'a
     .width(Length::Fill)
     .style(|_| container::Style {
         background: Some(Background::Color(palette::HEADER_BG)),
-        border: Border { color: palette::BORDER, width: 1.0, radius: 0.0.into() },
+        border: Border {
+            color: palette::BORDER,
+            width: 1.0,
+            radius: 0.0.into(),
+        },
         ..Default::default()
     });
 
     let body: Element<'a, Message> = match state {
-        BlastState::Idle => {
-            container(
-                text("No BLAST search submitted yet.")
-                    .size(12).color(palette::TEXT_DIM).font(Font::MONOSPACE),
-            )
-            .padding([20, 10]).into()
-        }
-        BlastState::Submitted(r) => {
-            container(
-                column![
-                    text(format!("Waiting for NCBI results…  RID: {r}")).size(12).color(palette::TEXT).font(Font::MONOSPACE),
-                    text("Click 'Check Results' to poll for completion (usually 20–60 seconds).")
-                        .size(11).color(palette::TEXT_DIM).font(Font::MONOSPACE),
-                ]
-                .spacing(6)
-            )
-            .padding([20, 10]).into()
-        }
-        BlastState::Failed(e) => {
-            container(
-                text(format!("Error: {e}")).size(12).color(iced::Color::from_rgb(0.8, 0.1, 0.1)).font(Font::MONOSPACE),
-            )
-            .padding([20, 10]).into()
-        }
-        BlastState::Complete(hits) if hits.is_empty() => {
-            container(
-                text("No significant hits found.").size(12).color(palette::TEXT_DIM).font(Font::MONOSPACE),
-            )
-            .padding([20, 10]).into()
-        }
+        BlastState::Idle => container(
+            text("No BLAST search submitted yet.")
+                .size(12)
+                .color(palette::TEXT_DIM)
+                .font(Font::MONOSPACE),
+        )
+        .padding([20, 10])
+        .into(),
+        BlastState::Submitted(r) => container(
+            column![
+                text(format!("Waiting for NCBI results…  RID: {r}"))
+                    .size(12)
+                    .color(palette::TEXT)
+                    .font(Font::MONOSPACE),
+                text("Click 'Check Results' to poll for completion (usually 20–60 seconds).")
+                    .size(11)
+                    .color(palette::TEXT_DIM)
+                    .font(Font::MONOSPACE),
+            ]
+            .spacing(6),
+        )
+        .padding([20, 10])
+        .into(),
+        BlastState::Failed(e) => container(
+            text(format!("Error: {e}"))
+                .size(12)
+                .color(iced::Color::from_rgb(0.8, 0.1, 0.1))
+                .font(Font::MONOSPACE),
+        )
+        .padding([20, 10])
+        .into(),
+        BlastState::Complete(hits) if hits.is_empty() => container(
+            text("No significant hits found.")
+                .size(12)
+                .color(palette::TEXT_DIM)
+                .font(Font::MONOSPACE),
+        )
+        .padding([20, 10])
+        .into(),
         BlastState::Complete(hits) => hits_table(hits),
     };
 
@@ -104,13 +115,34 @@ fn hits_table<'a>(hits: &'a [BlastHit]) -> Element<'a, Message> {
     // Column header
     let table_header = container(
         row![
-            text(format!("{:<4}", "#"))      .size(10).color(palette::ACCENT).font(Font::MONOSPACE),
-            text(format!("{:<22}", "Accession")).size(10).color(palette::ACCENT).font(Font::MONOSPACE),
-            text(format!("{:<10}", "Score"))  .size(10).color(palette::ACCENT).font(Font::MONOSPACE),
-            text(format!("{:<12}", "E-value")).size(10).color(palette::ACCENT).font(Font::MONOSPACE),
-            text(format!("{:<8}", "%ID"))     .size(10).color(palette::ACCENT).font(Font::MONOSPACE),
-            text(format!("{:<10}", "Len"))    .size(10).color(palette::ACCENT).font(Font::MONOSPACE),
-            text("Import").size(10).color(palette::ACCENT).font(Font::MONOSPACE),
+            text(format!("{:<4}", "#"))
+                .size(10)
+                .color(palette::ACCENT)
+                .font(Font::MONOSPACE),
+            text(format!("{:<22}", "Accession"))
+                .size(10)
+                .color(palette::ACCENT)
+                .font(Font::MONOSPACE),
+            text(format!("{:<10}", "Score"))
+                .size(10)
+                .color(palette::ACCENT)
+                .font(Font::MONOSPACE),
+            text(format!("{:<12}", "E-value"))
+                .size(10)
+                .color(palette::ACCENT)
+                .font(Font::MONOSPACE),
+            text(format!("{:<8}", "%ID"))
+                .size(10)
+                .color(palette::ACCENT)
+                .font(Font::MONOSPACE),
+            text(format!("{:<10}", "Len"))
+                .size(10)
+                .color(palette::ACCENT)
+                .font(Font::MONOSPACE),
+            text("Import")
+                .size(10)
+                .color(palette::ACCENT)
+                .font(Font::MONOSPACE),
         ]
         .spacing(4)
         .padding([3, 10]),
@@ -118,7 +150,11 @@ fn hits_table<'a>(hits: &'a [BlastHit]) -> Element<'a, Message> {
     .width(Length::Fill)
     .style(|_| container::Style {
         background: Some(Background::Color(palette::BG_PANEL)),
-        border: Border { color: palette::BORDER, width: 1.0, radius: 0.0.into() },
+        border: Border {
+            color: palette::BORDER,
+            width: 1.0,
+            radius: 0.0.into(),
+        },
         ..Default::default()
     });
 
@@ -137,16 +173,41 @@ fn hits_table<'a>(hits: &'a [BlastHit]) -> Element<'a, Message> {
         };
 
         let acc = hit.accession.clone();
-        let bg = if i % 2 == 0 { palette::BG_SEQ } else { palette::BG_SEQ_ALT };
+        let bg = if i % 2 == 0 {
+            palette::BG_SEQ
+        } else {
+            palette::BG_SEQ_ALT
+        };
 
         let row_el = container(
             row![
-                text(format!("{:<4}", hit.num))              .size(11).color(palette::TEXT).font(Font::MONOSPACE),
-                text(format!("{:<22}", &hit.accession[..hit.accession.len().min(20)])).size(11).color(palette::TEXT).font(Font::MONOSPACE),
-                text(format!("{:<10.0}", hit.bit_score))     .size(11).color(palette::TEXT).font(Font::MONOSPACE),
-                text(format!("{:<12}", evalue_str))          .size(11).color(palette::TEXT).font(Font::MONOSPACE),
-                text(format!("{:<8}", pct_id))               .size(11).color(palette::TEXT).font(Font::MONOSPACE),
-                text(format!("{:<10}", hit.align_len))       .size(11).color(palette::TEXT).font(Font::MONOSPACE),
+                text(format!("{:<4}", hit.num))
+                    .size(11)
+                    .color(palette::TEXT)
+                    .font(Font::MONOSPACE),
+                text(format!(
+                    "{:<22}",
+                    &hit.accession[..hit.accession.len().min(20)]
+                ))
+                .size(11)
+                .color(palette::TEXT)
+                .font(Font::MONOSPACE),
+                text(format!("{:<10.0}", hit.bit_score))
+                    .size(11)
+                    .color(palette::TEXT)
+                    .font(Font::MONOSPACE),
+                text(format!("{:<12}", evalue_str))
+                    .size(11)
+                    .color(palette::TEXT)
+                    .font(Font::MONOSPACE),
+                text(format!("{:<8}", pct_id))
+                    .size(11)
+                    .color(palette::TEXT)
+                    .font(Font::MONOSPACE),
+                text(format!("{:<10}", hit.align_len))
+                    .size(11)
+                    .color(palette::TEXT)
+                    .font(Font::MONOSPACE),
                 button(text("Import").size(10))
                     .padding([1, 6])
                     .on_press(Message::BlastImportHit(acc)),

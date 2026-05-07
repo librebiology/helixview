@@ -6,17 +6,17 @@
 //!   - `.` gap characters converted to `-`
 //!   - Sequence type determined from file header or info line, with residue heuristic fallback
 
+use crate::{FormatError, Result};
 use helixview_core::{
     alignment::Alignment,
     sequence::{Sequence, SequenceType},
 };
-use crate::{FormatError, Result};
 use std::path::Path;
 
 /// Parse an MSF byte slice into an `Alignment`.
 pub fn parse_bytes(data: &[u8], name: &str) -> Result<Alignment> {
-    let text = std::str::from_utf8(data)
-        .map_err(|e| FormatError::Parse(format!("Invalid UTF-8: {e}")))?;
+    let text =
+        std::str::from_utf8(data).map_err(|e| FormatError::Parse(format!("Invalid UTF-8: {e}")))?;
     parse_str(text, name)
 }
 
@@ -104,9 +104,7 @@ pub fn parse_str(text: &str, name: &str) -> Result<Alignment> {
     }
 
     // Determine the sequence type to assign.
-    let resolved_type = file_type
-        .or(info_type)
-        .unwrap_or(SequenceType::Unknown);
+    let resolved_type = file_type.or(info_type).unwrap_or(SequenceType::Unknown);
 
     for seq_name in seq_names {
         let residues = seq_map.remove(&seq_name).unwrap_or_default();
@@ -157,7 +155,12 @@ pub fn to_string(aln: &Alignment) -> Result<String> {
         _ => 'N',
     };
 
-    let seq_len = aln.sequences.iter().map(|s| s.residues.len()).max().unwrap_or(0);
+    let seq_len = aln
+        .sequences
+        .iter()
+        .map(|s| s.residues.len())
+        .max()
+        .unwrap_or(0);
 
     out.push_str(&format!("!!{}_MULTIPLE_ALIGNMENT 1.0\n\n", type_char));
     out.push_str(&format!(
@@ -166,7 +169,12 @@ pub fn to_string(aln: &Alignment) -> Result<String> {
     ));
 
     // Name block.
-    let name_width = aln.sequences.iter().map(|s| s.name.len()).max().unwrap_or(4);
+    let name_width = aln
+        .sequences
+        .iter()
+        .map(|s| s.name.len())
+        .max()
+        .unwrap_or(4);
     for seq in &aln.sequences {
         out.push_str(&format!(
             " Name: {:<width$}  Len: {}  Check: 0  Weight: 1.00\n",
@@ -198,10 +206,14 @@ pub fn to_string(aln: &Alignment) -> Result<String> {
 
             let mut col = 0usize;
             while col < slice.len() {
-                if col > 0 { out.push(' '); }
+                if col > 0 {
+                    out.push(' ');
+                }
                 let group_end = (col + GROUP).min(slice.len());
-                out.push_str(std::str::from_utf8(&slice[col..group_end])
-                    .map_err(|e| FormatError::Parse(e.to_string()))?);
+                out.push_str(
+                    std::str::from_utf8(&slice[col..group_end])
+                        .map_err(|e| FormatError::Parse(e.to_string()))?,
+                );
                 col += GROUP;
             }
             out.push('\n');

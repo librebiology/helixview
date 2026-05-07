@@ -2,18 +2,18 @@
 
 use std::sync::Arc;
 
-use iced::{
-    Background, Border, Color, Element, Font, Length,
-    widget::{button, column, container, row, scrollable, text},
-};
-use helixview_core::Alignment;
 use crate::app::Message;
 use crate::theme::palette;
+use helixview_core::Alignment;
+use iced::{
+    widget::{button, column, container, row, scrollable, text},
+    Background, Border, Color, Element, Font, Length,
+};
 
 /// Display a scrollable NxN pairwise identity matrix.
 /// `precomputed` – if None, shows a "Computing…" message while the async task runs.
 pub fn identity_matrix_view<'a>(
-    aln:         &'a Arc<Alignment>,
+    aln: &'a Arc<Alignment>,
     precomputed: Option<&'a Vec<Vec<f64>>>,
 ) -> Element<'a, Message> {
     let n = aln.seq_count();
@@ -54,9 +54,14 @@ pub fn identity_matrix_view<'a>(
     });
 
     if n == 0 {
-        return column![header,
-            container(text("No sequences loaded.").size(12).color(palette::TEXT_DIM))
-                .padding([16, 10])
+        return column![
+            header,
+            container(
+                text("No sequences loaded.")
+                    .size(12)
+                    .color(palette::TEXT_DIM)
+            )
+            .padding([16, 10])
         ]
         .into();
     }
@@ -64,9 +69,12 @@ pub fn identity_matrix_view<'a>(
     // Show spinner while async computation runs.
     let matrix = match precomputed {
         None => {
-            return column![header,
+            return column![
+                header,
                 container(
-                    text("Computing identity matrix…").size(12).color(palette::TEXT_DIM)
+                    text("Computing identity matrix…")
+                        .size(12)
+                        .color(palette::TEXT_DIM)
                 )
                 .padding([20, 16])
             ]
@@ -88,7 +96,7 @@ pub fn identity_matrix_view<'a>(
         container(text("").size(10))
             .width(NAME_W)
             .padding([2, 4])
-            .into()
+            .into(),
     );
     for j in 0..show_n {
         let label = truncate(&aln.sequences[j].name, 8);
@@ -103,10 +111,14 @@ pub fn identity_matrix_view<'a>(
             .padding([3, 4])
             .style(|_| container::Style {
                 background: Some(Background::Color(palette::HEADER_BG)),
-                border: Border { color: palette::BORDER, width: 1.0, radius: 0.0.into() },
+                border: Border {
+                    color: palette::BORDER,
+                    width: 1.0,
+                    radius: 0.0.into(),
+                },
                 ..Default::default()
             })
-            .into()
+            .into(),
         );
     }
     let col_header_row: Element<'a, Message> = row(header_cells).into();
@@ -130,10 +142,14 @@ pub fn identity_matrix_view<'a>(
             .padding([4, 6])
             .style(|_| container::Style {
                 background: Some(Background::Color(palette::HEADER_BG)),
-                border: Border { color: palette::BORDER, width: 1.0, radius: 0.0.into() },
+                border: Border {
+                    color: palette::BORDER,
+                    width: 1.0,
+                    radius: 0.0.into(),
+                },
                 ..Default::default()
             })
-            .into()
+            .into(),
         );
 
         for j in 0..show_n {
@@ -146,21 +162,20 @@ pub fn identity_matrix_view<'a>(
                 format!("{:.0}%", pct)
             };
             // White text on dark colors, dark text on light/medium colors.
-            let txt = if val >= 0.80 || val < 0.25 { Color::WHITE } else { Color::from_rgb(0.08, 0.08, 0.12) };
+            let txt = if val >= 0.80 || val < 0.25 {
+                Color::WHITE
+            } else {
+                Color::from_rgb(0.08, 0.08, 0.12)
+            };
             cells.push(
-                container(
-                    text(label)
-                        .size(12)
-                        .color(txt)
-                        .font(Font::MONOSPACE),
-                )
-                .width(COL_W)
-                .padding([4, 4])
-                .style(move |_| container::Style {
-                    background: Some(Background::Color(bg)),
-                    ..Default::default()
-                })
-                .into()
+                container(text(label).size(12).color(txt).font(Font::MONOSPACE))
+                    .width(COL_W)
+                    .padding([4, 4])
+                    .style(move |_| container::Style {
+                        background: Some(Background::Color(bg)),
+                        ..Default::default()
+                    })
+                    .into(),
             );
         }
 
@@ -184,7 +199,10 @@ pub fn identity_matrix_view<'a>(
     let content = column![
         header,
         scrollable(
-            column![note, body].spacing(4).padding([4, 8]).width(Length::Fill)
+            column![note, body]
+                .spacing(4)
+                .padding([4, 8])
+                .width(Length::Fill)
         )
         .width(Length::Fill)
         .height(Length::Fill),
@@ -197,16 +215,28 @@ pub fn identity_matrix_view<'a>(
 
 /// Heat-map color: green (high identity) → yellow → red (low).
 fn identity_color(pct: f32) -> Color {
-    if pct >= 0.95 { return Color::from_rgb(0.08, 0.55, 0.20); }
-    if pct >= 0.80 { return Color::from_rgb(0.22, 0.70, 0.35); }
-    if pct >= 0.60 { return Color::from_rgb(0.55, 0.80, 0.30); }
-    if pct >= 0.40 { return Color::from_rgb(0.90, 0.75, 0.20); }
-    if pct >= 0.25 { return Color::from_rgb(0.90, 0.48, 0.15); }
+    if pct >= 0.95 {
+        return Color::from_rgb(0.08, 0.55, 0.20);
+    }
+    if pct >= 0.80 {
+        return Color::from_rgb(0.22, 0.70, 0.35);
+    }
+    if pct >= 0.60 {
+        return Color::from_rgb(0.55, 0.80, 0.30);
+    }
+    if pct >= 0.40 {
+        return Color::from_rgb(0.90, 0.75, 0.20);
+    }
+    if pct >= 0.25 {
+        return Color::from_rgb(0.90, 0.48, 0.15);
+    }
     Color::from_rgb(0.78, 0.20, 0.15)
 }
 
 fn truncate(s: &str, max: usize) -> String {
-    if s.chars().count() <= max { return s.to_owned(); }
+    if s.chars().count() <= max {
+        return s.to_owned();
+    }
     let t: String = s.chars().take(max - 1).collect();
     format!("{t}…")
 }

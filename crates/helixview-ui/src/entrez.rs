@@ -1,8 +1,8 @@
 use helixview_core::Alignment;
 
-const NCBI_BASE:    &str = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi";
-const TOOL:         &str = "helixview";
-const EMAIL:        &str = "helixview-app@users.noreply.github.com";
+const NCBI_BASE: &str = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi";
+const TOOL: &str = "helixview";
+const EMAIL: &str = "helixview-app@users.noreply.github.com";
 const UNIPROT_BASE: &str = "https://rest.uniprot.org/uniprotkb";
 
 pub async fn fetch_accession(accession: String) -> Result<Alignment, String> {
@@ -18,23 +18,33 @@ pub async fn fetch_accession(accession: String) -> Result<Alignment, String> {
         .map_err(|e| format!("HTTP client error: {e}"))?;
 
     let mut uniprot_ids: Vec<&str> = Vec::new();
-    let mut ncbi_ids:    Vec<&str> = Vec::new();
+    let mut ncbi_ids: Vec<&str> = Vec::new();
 
     for id in acc.split(',') {
         let id = id.trim();
-        if id.is_empty() { continue; }
-        if is_uniprot_id(id) { uniprot_ids.push(id); } else { ncbi_ids.push(id); }
+        if id.is_empty() {
+            continue;
+        }
+        if is_uniprot_id(id) {
+            uniprot_ids.push(id);
+        } else {
+            ncbi_ids.push(id);
+        }
     }
 
     let mut merged = Alignment::new(&acc);
 
     if !uniprot_ids.is_empty() {
         let aln = fetch_uniprot(&client, &uniprot_ids).await?;
-        for seq in aln.sequences { merged.push(seq); }
+        for seq in aln.sequences {
+            merged.push(seq);
+        }
     }
     if !ncbi_ids.is_empty() {
         let aln = fetch_ncbi(&client, &ncbi_ids.join(",")).await?;
-        for seq in aln.sequences { merged.push(seq); }
+        for seq in aln.sequences {
+            merged.push(seq);
+        }
     }
 
     if merged.is_empty() {
@@ -49,18 +59,24 @@ pub async fn fetch_accession(accession: String) -> Result<Alignment, String> {
 // NCBI GenBank IDs like L09137 are distinguished by having a digit at position 2.
 fn is_uniprot_id(acc: &str) -> bool {
     let acc = acc.split('-').next().unwrap_or(acc).trim();
-    if acc.contains('_') { return false; }
+    if acc.contains('_') {
+        return false;
+    }
     let b = acc.as_bytes();
     if (b.len() != 6 && b.len() != 10) || !b[0].is_ascii_alphabetic() || !b[1].is_ascii_digit() {
         return false;
     }
     let c0 = b[0].to_ascii_uppercase();
     if c0 == b'O' || c0 == b'P' || c0 == b'Q' {
-        b[2].is_ascii_alphanumeric() && b[3].is_ascii_alphanumeric()
-            && b[4].is_ascii_alphanumeric() && b[5].is_ascii_digit()
+        b[2].is_ascii_alphanumeric()
+            && b[3].is_ascii_alphanumeric()
+            && b[4].is_ascii_alphanumeric()
+            && b[5].is_ascii_digit()
     } else {
-        b[2].is_ascii_alphabetic() && b[3].is_ascii_alphanumeric()
-            && b[4].is_ascii_alphanumeric() && b[5].is_ascii_digit()
+        b[2].is_ascii_alphabetic()
+            && b[3].is_ascii_alphanumeric()
+            && b[4].is_ascii_alphanumeric()
+            && b[5].is_ascii_digit()
     }
 }
 
@@ -79,8 +95,7 @@ async fn fetch_ncbi(client: &reqwest::Client, acc: &str) -> Result<Alignment, St
     let upper = acc.to_uppercase();
     let is_protein = upper.split(',').all(|a| {
         let a = a.trim();
-        a.starts_with("NP_") || a.starts_with("XP_") ||
-        a.starts_with("WP_") || a.starts_with("YP_")
+        a.starts_with("NP_") || a.starts_with("XP_") || a.starts_with("WP_") || a.starts_with("YP_")
     });
 
     if is_protein {
@@ -93,7 +108,9 @@ async fn fetch_ncbi(client: &reqwest::Client, acc: &str) -> Result<Alignment, St
     if let Ok(text) = fetch_text(client, &url_gb).await {
         if !looks_like_error(&text) {
             if let Ok(aln) = helixview_formats::genbank::parse_str(&text, acc) {
-                if aln.seq_count() > 0 { return Ok(aln); }
+                if aln.seq_count() > 0 {
+                    return Ok(aln);
+                }
             }
         }
     }
@@ -104,12 +121,13 @@ async fn fetch_ncbi(client: &reqwest::Client, acc: &str) -> Result<Alignment, St
     let text = fetch_text(client, &url_fa).await?;
     if looks_like_error(&text) || text.trim().is_empty() {
         if let Ok(aln) = fetch_ncbi_protein(client, acc).await {
-            if aln.seq_count() > 0 { return Ok(aln); }
+            if aln.seq_count() > 0 {
+                return Ok(aln);
+            }
         }
         return Err(format!("Accession '{acc}' not found in NCBI."));
     }
-    helixview_formats::fasta::parse_str(&text, acc)
-        .map_err(|e| format!("Parse error: {e}"))
+    helixview_formats::fasta::parse_str(&text, acc).map_err(|e| format!("Parse error: {e}"))
 }
 
 async fn fetch_ncbi_protein(client: &reqwest::Client, acc: &str) -> Result<Alignment, String> {
@@ -118,16 +136,21 @@ async fn fetch_ncbi_protein(client: &reqwest::Client, acc: &str) -> Result<Align
     );
     let text = fetch_text(client, &url).await?;
     if looks_like_error(&text) || text.trim().is_empty() {
-        return Err(format!("Accession '{acc}' not found in NCBI protein database."));
+        return Err(format!(
+            "Accession '{acc}' not found in NCBI protein database."
+        ));
     }
-    helixview_formats::fasta::parse_str(&text, acc)
-        .map_err(|e| format!("Parse error: {e}"))
+    helixview_formats::fasta::parse_str(&text, acc).map_err(|e| format!("Parse error: {e}"))
 }
 
 async fn fetch_text(client: &reqwest::Client, url: &str) -> Result<String, String> {
-    client.get(url).send().await
+    client
+        .get(url)
+        .send()
+        .await
         .map_err(|e| format!("Network error: {e}"))?
-        .text().await
+        .text()
+        .await
         .map_err(|e| format!("Response decode error: {e}"))
 }
 

@@ -11,7 +11,7 @@ pub struct ConservedRegion {
     /// Start column (0-based, inclusive).
     pub start: usize,
     /// End column (0-based, inclusive).
-    pub end:   usize,
+    pub end: usize,
     /// Average per-column identity across the region.
     pub avg_identity: f64,
     /// Plurality consensus sequence for the region.
@@ -31,7 +31,7 @@ impl ConservedRegion {
 ///
 /// Returns regions sorted by start position.
 pub fn find_conserved_regions(
-    aln:       &Alignment,
+    aln: &Alignment,
     threshold: f64,
     min_width: usize,
 ) -> Vec<ConservedRegion> {
@@ -42,12 +42,15 @@ pub fn find_conserved_regions(
 
     let mut regions: Vec<ConservedRegion> = Vec::new();
     let mut run_start: Option<usize> = None;
-    let mut run_sum  = 0.0f64;
+    let mut run_sum = 0.0f64;
 
     for col in 0..ncols {
         let ident = aln.column_identity(col) as f64;
         if ident >= threshold {
-            if run_start.is_none() { run_start = Some(col); run_sum = 0.0; }
+            if run_start.is_none() {
+                run_start = Some(col);
+                run_sum = 0.0;
+            }
             run_sum += ident;
         } else {
             if let Some(start) = run_start.take() {
@@ -76,13 +79,18 @@ fn build_region(aln: &Alignment, start: usize, end: usize, avg: f64) -> Conserve
     let consensus = (start..=end)
         .map(|col| aln.column_consensus_residue(col))
         .collect();
-    ConservedRegion { start, end, avg_identity: avg, consensus }
+    ConservedRegion {
+        start,
+        end,
+        avg_identity: avg,
+        consensus,
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use helixview_core::{Alignment, sequence::Sequence};
+    use helixview_core::{sequence::Sequence, Alignment};
 
     fn aln(seqs: &[&[u8]]) -> Alignment {
         let mut a = Alignment::new("t");

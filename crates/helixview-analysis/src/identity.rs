@@ -1,5 +1,5 @@
-use rayon::prelude::*;
 use helixview_core::Alignment;
+use rayon::prelude::*;
 
 /// Fraction of aligned, non-gap columns where both sequences have the same residue.
 /// Positions where either sequence has a gap are excluded from denominator.
@@ -16,7 +16,11 @@ pub fn pairwise_identity(a: &[u8], b: &[u8]) -> f64 {
             numer += 1;
         }
     }
-    if denom == 0 { 0.0 } else { numer as f64 / denom as f64 }
+    if denom == 0 {
+        0.0
+    } else {
+        numer as f64 / denom as f64
+    }
 }
 
 /// NxN symmetric matrix of pairwise identities (0.0–1.0).
@@ -39,10 +43,7 @@ pub fn identity_matrix(aln: &Alignment) -> Vec<Vec<f64>> {
     let results: Vec<(usize, usize, f64)> = pairs
         .into_par_iter()
         .map(|(i, j)| {
-            let id = pairwise_identity(
-                &aln.sequences[i].residues,
-                &aln.sequences[j].residues,
-            );
+            let id = pairwise_identity(&aln.sequences[i].residues, &aln.sequences[j].residues);
             (i, j, id)
         })
         .collect();

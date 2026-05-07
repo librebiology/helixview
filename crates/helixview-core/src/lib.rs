@@ -6,9 +6,12 @@ pub mod history;
 pub mod sequence;
 pub mod tree;
 
-pub use alignment::Alignment;
 pub use alignment::reverse_complement;
+pub use alignment::Alignment;
 pub use feature::{Feature, FeatureType};
-pub use history::{Command, History, InsertGapColumn, DeleteColumn, MoveSequence, SetResidues, InsertGapInSeq, DeleteGapInSeq, EditFeature, AddFeature, DeleteFeature};
+pub use history::{
+    AddFeature, Command, DeleteColumn, DeleteFeature, DeleteGapInSeq, EditFeature, History,
+    InsertGapColumn, InsertGapInSeq, MoveSequence, SetResidues,
+};
 pub use sequence::{Sequence, SequenceType};
-pub use tree::{PhyloTree, TreeNode, LayoutNode, layout_cladogram};
+pub use tree::{layout_cladogram, LayoutNode, PhyloTree, TreeNode};

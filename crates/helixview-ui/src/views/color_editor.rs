@@ -2,21 +2,21 @@
 
 use std::sync::Arc;
 
+use iced::widget::horizontal_space;
 use iced::{
     widget::{button, column, container, row, slider, text},
     Alignment, Background, Border, Color, Element, Length,
 };
-use iced::widget::horizontal_space;
 
 use crate::app::Message;
-use crate::color_table::{ColorTable, NUC_RESIDUES, AA_RESIDUES};
+use crate::color_table::{ColorTable, AA_RESIDUES, NUC_RESIDUES};
 use crate::theme::palette;
 
 // ── Public entry point ────────────────────────────────────────────────────────
 
 pub fn color_editor_view<'a>(
-    table:    &'a Arc<ColorTable>,
-    selected: Option<(u8, bool)>,   // (residue_byte, is_nuc)
+    table: &'a Arc<ColorTable>,
+    selected: Option<(u8, bool)>, // (residue_byte, is_nuc)
 ) -> Element<'a, Message> {
     // ── Toolbar ───────────────────────────────────────────────────────────────
     let back_btn = button(text("< Back").size(13))
@@ -46,8 +46,8 @@ pub fn color_editor_view<'a>(
     .width(Length::Fill);
 
     // ── Swatch sections ───────────────────────────────────────────────────────
-    let nuc_section = swatch_section("Nucleotides", NUC_RESIDUES, true,  table, selected);
-    let aa_section  = swatch_section("Amino Acids", AA_RESIDUES,  false, table, selected);
+    let nuc_section = swatch_section("Nucleotides", NUC_RESIDUES, true, table, selected);
+    let aa_section = swatch_section("Amino Acids", AA_RESIDUES, false, table, selected);
 
     // ── RGB sliders for selected residue ──────────────────────────────────────
     let editor_panel: Element<Message> = match selected {
@@ -70,7 +70,11 @@ pub fn color_editor_view<'a>(
     .width(Length::Fill)
     .style(|_| container::Style {
         background: Some(Background::Color(palette::BG_PANEL)),
-        border: Border { color: palette::BORDER, width: 1.0, radius: 0.0.into() },
+        border: Border {
+            color: palette::BORDER,
+            width: 1.0,
+            radius: 0.0.into(),
+        },
         ..Default::default()
     });
 
@@ -84,21 +88,19 @@ pub fn color_editor_view<'a>(
 // ── Swatch row ────────────────────────────────────────────────────────────────
 
 fn swatch_section<'a>(
-    label:    &'a str,
+    label: &'a str,
     residues: &'static [u8],
-    is_nuc:   bool,
-    table:    &'a Arc<ColorTable>,
+    is_nuc: bool,
+    table: &'a Arc<ColorTable>,
     selected: Option<(u8, bool)>,
 ) -> Element<'a, Message> {
-    let header = container(
-        text(label).size(12).color(palette::TEXT),
-    )
-    .padding([5, 10])
-    .width(Length::Fill)
-    .style(|_| container::Style {
-        background: Some(Background::Color(palette::HEADER_BG)),
-        ..Default::default()
-    });
+    let header = container(text(label).size(12).color(palette::TEXT))
+        .padding([5, 10])
+        .width(Length::Fill)
+        .style(|_| container::Style {
+            background: Some(Background::Color(palette::HEADER_BG)),
+            ..Default::default()
+        });
 
     let mut swatches: Vec<Element<Message>> = Vec::new();
     for &b in residues {
@@ -106,7 +108,11 @@ fn swatch_section<'a>(
             swatches.push(iced::widget::Space::with_width(8).into());
             continue;
         }
-        let color = if is_nuc { table.nuc_color(b) } else { table.aa_color(b) };
+        let color = if is_nuc {
+            table.nuc_color(b)
+        } else {
+            table.aa_color(b)
+        };
         let is_selected = selected == Some((b, is_nuc));
 
         let border_color = if is_selected {
@@ -118,7 +124,9 @@ fn swatch_section<'a>(
 
         let swatch = button(
             container(
-                text(b as char).size(14).color(Color::from_rgb(0.1, 0.1, 0.1)),
+                text(b as char)
+                    .size(14)
+                    .color(Color::from_rgb(0.1, 0.1, 0.1)),
             )
             .width(34)
             .height(34)
@@ -145,7 +153,10 @@ fn swatch_section<'a>(
     }
 
     let swatch_row = container(
-        row(swatches).spacing(4).align_y(Alignment::Center).padding([8, 10]),
+        row(swatches)
+            .spacing(4)
+            .align_y(Alignment::Center)
+            .padding([8, 10]),
     )
     .width(Length::Fill);
 
@@ -155,7 +166,11 @@ fn swatch_section<'a>(
 // ── RGB editor ────────────────────────────────────────────────────────────────
 
 fn rgb_editor<'a>(table: &'a Arc<ColorTable>, b: u8, is_nuc: bool) -> Element<'a, Message> {
-    let color = if is_nuc { table.nuc_color(b) } else { table.aa_color(b) };
+    let color = if is_nuc {
+        table.nuc_color(b)
+    } else {
+        table.aa_color(b)
+    };
 
     let r = color.r;
     let g = color.g;
@@ -168,24 +183,28 @@ fn rgb_editor<'a>(table: &'a Arc<ColorTable>, b: u8, is_nuc: bool) -> Element<'a
         (bl * 255.0) as u8,
     );
 
-    let label = format!("Residue: {}  ({})",
+    let label = format!(
+        "Residue: {}  ({})",
         b as char,
         if is_nuc { "nucleotide" } else { "amino acid" }
     );
 
-    let preview = container(iced::widget::Space::new(60, 36))
-        .style(move |_| container::Style {
-            background: Some(Background::Color(color)),
-            border: Border {
-                color: Color::from_rgb(0.4, 0.4, 0.4),
-                width: 1.0,
-                radius: 4.0.into(),
-            },
-            ..Default::default()
-        });
+    let preview = container(iced::widget::Space::new(60, 36)).style(move |_| container::Style {
+        background: Some(Background::Color(color)),
+        border: Border {
+            color: Color::from_rgb(0.4, 0.4, 0.4),
+            width: 1.0,
+            radius: 4.0.into(),
+        },
+        ..Default::default()
+    });
 
     let mk_slider = move |channel: u8, val: f32| {
-        let lbl = match channel { 0 => "R", 1 => "G", _ => "B" };
+        let lbl = match channel {
+            0 => "R",
+            1 => "G",
+            _ => "B",
+        };
         let msg_fn = move |v: f32| Message::SetResidueColor {
             residue: b,
             is_nuc,
@@ -195,7 +214,10 @@ fn rgb_editor<'a>(table: &'a Arc<ColorTable>, b: u8, is_nuc: bool) -> Element<'a
         row![
             text(lbl).size(12).color(palette::TEXT_DIM).width(16),
             slider(0.0f32..=1.0, val, msg_fn).step(0.004).width(200),
-            text(format!("{:.2}", val)).size(11).color(palette::TEXT_DIM).width(40),
+            text(format!("{:.2}", val))
+                .size(11)
+                .color(palette::TEXT_DIM)
+                .width(40),
         ]
         .spacing(8)
         .align_y(Alignment::Center)
@@ -220,7 +242,11 @@ fn rgb_editor<'a>(table: &'a Arc<ColorTable>, b: u8, is_nuc: bool) -> Element<'a
     .width(Length::Fill)
     .style(|_| container::Style {
         background: Some(Background::Color(Color::from_rgb(0.97, 0.97, 1.0))),
-        border: Border { color: palette::BORDER, width: 1.0, radius: 0.0.into() },
+        border: Border {
+            color: palette::BORDER,
+            width: 1.0,
+            radius: 0.0.into(),
+        },
         ..Default::default()
     })
     .into()

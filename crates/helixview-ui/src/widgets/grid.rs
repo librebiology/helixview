@@ -2,29 +2,28 @@ use std::cell::Cell;
 use std::collections::{BTreeSet, HashSet};
 use std::sync::Arc;
 
+use helixview_core::color::Color as CoreColor;
+use helixview_core::feature::FeatureType;
+use helixview_core::{Alignment as SeqAlignment, SequenceType};
 use iced::{
-    alignment,
-    mouse,
+    alignment, mouse,
     widget::canvas::{self, Frame, Path, Text},
     Color, Font, Pixels, Point, Rectangle, Size,
 };
-use helixview_core::{Alignment as SeqAlignment, SequenceType};
-use helixview_core::color::Color as CoreColor;
-use helixview_core::feature::FeatureType;
 
 use crate::app::{ColorScheme, Message};
 use crate::color_table::ColorTable;
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 
-pub const TITLE_W:   f32 = 200.0;
-pub const RULER_H:   f32 = 22.0;
-pub const CELL_W:    f32 = 10.0;
-pub const CELL_H:    f32 = 22.0;
-pub const FONT_SIZE:   f32 = 12.5;
+pub const TITLE_W: f32 = 200.0;
+pub const RULER_H: f32 = 22.0;
+pub const CELL_W: f32 = 10.0;
+pub const CELL_H: f32 = 22.0;
+pub const FONT_SIZE: f32 = 12.5;
 /// Each feature tier is 4 px tall; 3 tiers = 12 px total stripe area.
 const FEATURE_LAYER_H: f32 = 4.0;
-const FEATURE_TIERS:   usize = 3;
+const FEATURE_TIERS: usize = 3;
 
 /// Identity threshold below which a column is rendered un-colored.
 const IDENTITY_THRESHOLD: f32 = 0.50;
@@ -33,13 +32,13 @@ const IDENTITY_THRESHOLD: f32 = 0.50;
 
 /// Per-interaction state for the alignment grid canvas.
 pub struct GridState {
-    drag_from:      Option<usize>,
-    drag_to:        Option<usize>,
-    is_dragging:    bool,
+    drag_from: Option<usize>,
+    drag_to: Option<usize>,
+    is_dragging: bool,
     col_drag_start: Option<usize>,
     /// Cached geometry for the main grid (residues, ruler, titles, features).
     /// Cleared when `cached_version` differs from `AlignmentGrid::version`.
-    grid_cache:     canvas::Cache,
+    grid_cache: canvas::Cache,
     /// Version stamp seen when the cache was last filled.
     cached_version: Cell<u64>,
     /// For double-click detection: (row_idx, click_time).
@@ -49,12 +48,12 @@ pub struct GridState {
 impl Default for GridState {
     fn default() -> Self {
         Self {
-            drag_from:        None,
-            drag_to:          None,
-            is_dragging:      false,
-            col_drag_start:   None,
-            grid_cache:       canvas::Cache::default(),
-            cached_version:   Cell::new(u64::MAX),
+            drag_from: None,
+            drag_to: None,
+            is_dragging: false,
+            col_drag_start: None,
+            grid_cache: canvas::Cache::default(),
+            cached_version: Cell::new(u64::MAX),
             last_title_click: None,
         }
     }
@@ -63,30 +62,30 @@ impl Default for GridState {
 impl std::fmt::Debug for GridState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GridState")
-            .field("drag_from",      &self.drag_from)
-            .field("drag_to",        &self.drag_to)
-            .field("is_dragging",    &self.is_dragging)
+            .field("drag_from", &self.drag_from)
+            .field("drag_to", &self.drag_to)
+            .field("is_dragging", &self.is_dragging)
             .field("col_drag_start", &self.col_drag_start)
             .finish_non_exhaustive()
     }
 }
 
 pub struct AlignmentGrid {
-    pub aln:        Arc<SeqAlignment>,
+    pub aln: Arc<SeqAlignment>,
     pub scroll_col: usize,
     pub scroll_row: usize,
-    pub selected:   BTreeSet<usize>,
-    pub scheme:     ColorScheme,
-    pub ctrl_held:  bool,
+    pub selected: BTreeSet<usize>,
+    pub scheme: ColorScheme,
+    pub ctrl_held: bool,
     pub shift_held: bool,
     /// Currently selected cell for residue editing (row, col).
-    pub edit_cell:  Option<(usize, usize)>,
+    pub edit_cell: Option<(usize, usize)>,
     /// Dynamic cell width (CELL_W * zoom).
-    pub cell_w:     f32,
+    pub cell_w: f32,
     /// Dynamic cell height (CELL_H * zoom).
-    pub cell_h:     f32,
+    pub cell_h: f32,
     /// Dynamic font size (FONT_SIZE * zoom).
-    pub font_size:  f32,
+    pub font_size: f32,
     /// Currently selected columns (for highlight and bulk delete).
     pub selected_cols: HashSet<usize>,
     /// Whether to draw feature annotation stripes.
@@ -108,11 +107,11 @@ impl canvas::Program<Message> for AlignmentGrid {
 
     fn draw(
         &self,
-        state:    &GridState,
+        state: &GridState,
         renderer: &iced::Renderer,
-        _theme:   &iced::Theme,
-        bounds:   Rectangle,
-        _cursor:  mouse::Cursor,
+        _theme: &iced::Theme,
+        bounds: Rectangle,
+        _cursor: mouse::Cursor,
     ) -> Vec<canvas::Geometry<iced::Renderer>> {
         // ── Layer 1: main grid (cached) ───────────────────────────────────
         // Invalidate whenever the visual data changes (scroll, edit, zoom…).
@@ -128,7 +127,7 @@ impl canvas::Program<Message> for AlignmentGrid {
         // into adjacent widgets (e.g. the entropy strip below).
         const SNAP: f32 = 32.0;
         let snapped = Size {
-            width:  (bounds.width  / SNAP).ceil() * SNAP,
+            width: (bounds.width / SNAP).ceil() * SNAP,
             height: (bounds.height / SNAP).ceil() * SNAP,
         };
 
@@ -149,8 +148,8 @@ impl canvas::Program<Message> for AlignmentGrid {
 
     fn update(
         &self,
-        state:  &mut GridState,
-        event:  canvas::Event,
+        state: &mut GridState,
+        event: canvas::Event,
         bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> (canvas::event::Status, Option<Message>) {
@@ -187,7 +186,8 @@ impl canvas::Program<Message> for AlignmentGrid {
                     if let Some(from) = state.drag_from {
                         if pos.x < TITLE_W && pos.y >= RULER_H {
                             let ri = ((pos.y - RULER_H) / self.cell_h) as usize;
-                            let target = (self.scroll_row + ri).min(self.aln.seq_count().saturating_sub(1));
+                            let target =
+                                (self.scroll_row + ri).min(self.aln.seq_count().saturating_sub(1));
                             state.drag_to = Some(target);
                             if target != from {
                                 state.is_dragging = true;
@@ -205,13 +205,19 @@ impl canvas::Program<Message> for AlignmentGrid {
                         if col < self.aln.col_count() && row < self.aln.seq_count() {
                             return (
                                 canvas::event::Status::Ignored,
-                                Some(Message::HoverPosition { col: Some(col), row: Some(row) }),
+                                Some(Message::HoverPosition {
+                                    col: Some(col),
+                                    row: Some(row),
+                                }),
                             );
                         }
                     }
                     return (
                         canvas::event::Status::Ignored,
-                        Some(Message::HoverPosition { col: None, row: None }),
+                        Some(Message::HoverPosition {
+                            col: None,
+                            row: None,
+                        }),
                     );
                 }
                 let _ = position;
@@ -221,7 +227,7 @@ impl canvas::Program<Message> for AlignmentGrid {
                 if let Some(pos) = cursor.position_in(bounds) {
                     if pos.x >= TITLE_W && pos.y < RULER_H {
                         // Ruler area → start column selection drag.
-                        let ci  = ((pos.x - TITLE_W) / self.cell_w) as usize;
+                        let ci = ((pos.x - TITLE_W) / self.cell_w) as usize;
                         let col = self.scroll_col + ci;
                         if col < self.aln.col_count() {
                             state.col_drag_start = Some(col);
@@ -234,7 +240,8 @@ impl canvas::Program<Message> for AlignmentGrid {
                         if actual_row < self.aln.seq_count() {
                             // Double-click detection (within 400 ms, same row).
                             let now = std::time::Instant::now();
-                            let is_double = state.last_title_click
+                            let is_double = state
+                                .last_title_click
                                 .as_ref()
                                 .map(|(r, t)| *r == actual_row && t.elapsed().as_millis() < 400)
                                 .unwrap_or(false);
@@ -246,8 +253,8 @@ impl canvas::Program<Message> for AlignmentGrid {
                                 );
                             }
                             state.last_title_click = Some((actual_row, now));
-                            state.drag_from   = Some(actual_row);
-                            state.drag_to     = Some(actual_row);
+                            state.drag_from = Some(actual_row);
+                            state.drag_to = Some(actual_row);
                             state.is_dragging = false;
                             return (canvas::event::Status::Captured, None);
                         }
@@ -271,8 +278,9 @@ impl canvas::Program<Message> for AlignmentGrid {
                 // Finalise column selection drag.
                 if let Some(start) = state.col_drag_start.take() {
                     if let Some(pos) = cursor.position_in(bounds) {
-                        let ci  = ((pos.x - TITLE_W).max(0.0) / self.cell_w) as usize;
-                        let end = (self.scroll_col + ci).min(self.aln.col_count().saturating_sub(1));
+                        let ci = ((pos.x - TITLE_W).max(0.0) / self.cell_w) as usize;
+                        let end =
+                            (self.scroll_col + ci).min(self.aln.col_count().saturating_sub(1));
                         return (
                             canvas::event::Status::Captured,
                             Some(Message::ColumnsSelected { start, end }),
@@ -282,7 +290,7 @@ impl canvas::Program<Message> for AlignmentGrid {
 
                 // Finalise row drag/select.
                 let from = state.drag_from.take();
-                let to   = state.drag_to.take();
+                let to = state.drag_to.take();
                 let was_dragging = state.is_dragging;
                 state.is_dragging = false;
 
@@ -292,15 +300,18 @@ impl canvas::Program<Message> for AlignmentGrid {
                         if from_row != to_row {
                             return (
                                 canvas::event::Status::Captured,
-                                Some(Message::SequenceMoved { from: from_row, to: to_row }),
+                                Some(Message::SequenceMoved {
+                                    from: from_row,
+                                    to: to_row,
+                                }),
                             );
                         }
                     } else {
                         return (
                             canvas::event::Status::Captured,
                             Some(Message::SequenceClicked {
-                                idx:   from_row,
-                                ctrl:  self.ctrl_held,
+                                idx: from_row,
+                                ctrl: self.ctrl_held,
                                 shift: self.shift_held,
                             }),
                         );
@@ -340,7 +351,7 @@ impl canvas::Program<Message> for AlignmentGrid {
 
     fn mouse_interaction(
         &self,
-        state:  &GridState,
+        state: &GridState,
         bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> mouse::Interaction {
@@ -365,32 +376,48 @@ impl AlignmentGrid {
         let nrows = self.aln.seq_count();
         let ncols = self.aln.col_count();
 
-        let vis_cols = ((size.width  - TITLE_W) / self.cell_w).ceil() as usize + 2;
-        let vis_rows = ((size.height - RULER_H)  / self.cell_h).ceil() as usize + 1;
+        let vis_cols = ((size.width - TITLE_W) / self.cell_w).ceil() as usize + 2;
+        let vis_rows = ((size.height - RULER_H) / self.cell_h).ceil() as usize + 1;
 
         // ── Background ───────────────────────────────────────────────────
         frame.fill_rectangle(Point::ORIGIN, size, Color::from_rgb(0.98, 0.98, 0.98));
 
         // ── Precompute per-column entropy for Strength scheme ────────────
         let entropy_scores: Vec<f32> = if self.scheme == ColorScheme::Strength {
-            (0..vis_cols).map(|ci| {
-                let c = self.scroll_col + ci;
-                if c < ncols { col_entropy_at(&self.aln, c) as f32 } else { 0.0 }
-            }).collect()
-        } else { vec![] };
+            (0..vis_cols)
+                .map(|ci| {
+                    let c = self.scroll_col + ci;
+                    if c < ncols {
+                        col_entropy_at(&self.aln, c) as f32
+                    } else {
+                        0.0
+                    }
+                })
+                .collect()
+        } else {
+            vec![]
+        };
 
         // ── Precompute per-column identity for Identity scheme ────────────
         let (identity_scores, consensus_residues) = if self.scheme == ColorScheme::Identity {
             let scores: Vec<f32> = (0..vis_cols)
                 .map(|ci| {
                     let c = self.scroll_col + ci;
-                    if c < ncols { self.aln.column_identity(c) } else { 0.0 }
+                    if c < ncols {
+                        self.aln.column_identity(c)
+                    } else {
+                        0.0
+                    }
                 })
                 .collect();
             let cons: Vec<u8> = (0..vis_cols)
                 .map(|ci| {
                     let c = self.scroll_col + ci;
-                    if c < ncols { self.aln.column_consensus_residue(c) } else { b'-' }
+                    if c < ncols {
+                        self.aln.column_consensus_residue(c)
+                    } else {
+                        b'-'
+                    }
                 })
                 .collect();
             (scores, cons)
@@ -401,10 +428,12 @@ impl AlignmentGrid {
         // ── Residue rows ─────────────────────────────────────────────────
         for ri in 0..vis_rows {
             let actual_row = self.scroll_row + ri;
-            if actual_row >= nrows { break; }
+            if actual_row >= nrows {
+                break;
+            }
 
             let seq = &self.aln.sequences[actual_row];
-            let y   = RULER_H + ri as f32 * self.cell_h;
+            let y = RULER_H + ri as f32 * self.cell_h;
 
             // Whole-row background (grid area)
             let row_bg = if self.selected.contains(&actual_row) {
@@ -428,7 +457,12 @@ impl AlignmentGrid {
                     frame.fill_rectangle(
                         Point::new(x, y),
                         Size::new(self.cell_w, self.cell_h),
-                        Color { r: 0.30, g: 0.55, b: 1.00, a: 0.25 },
+                        Color {
+                            r: 0.30,
+                            g: 0.55,
+                            b: 1.00,
+                            a: 0.25,
+                        },
                     );
                 }
             }
@@ -436,9 +470,11 @@ impl AlignmentGrid {
             // Per-cell coloring
             for ci in 0..vis_cols {
                 let actual_col = self.scroll_col + ci;
-                if actual_col >= ncols { break; }
+                if actual_col >= ncols {
+                    break;
+                }
 
-                let x       = TITLE_W + ci as f32 * self.cell_w;
+                let x = TITLE_W + ci as f32 * self.cell_w;
                 let residue = seq.residues[actual_col];
 
                 let colored = match self.scheme {
@@ -449,9 +485,8 @@ impl AlignmentGrid {
                             false
                         } else {
                             let ident = *identity_scores.get(ci).unwrap_or(&0.0);
-                            let cons  = *consensus_residues.get(ci).unwrap_or(&b'-');
-                            ident >= IDENTITY_THRESHOLD
-                                && residue.to_ascii_uppercase() == cons
+                            let cons = *consensus_residues.get(ci).unwrap_or(&b'-');
+                            ident >= IDENTITY_THRESHOLD && residue.to_ascii_uppercase() == cons
                         }
                     }
                     ColorScheme::Strength => !is_gap(residue),
@@ -520,19 +555,23 @@ impl AlignmentGrid {
                 let actual_col = self.scroll_col + ci;
                 if self.pattern_matches.contains(&(actual_row, actual_col)) {
                     let x = TITLE_W + ci as f32 * self.cell_w;
-                    let is_focused = self.pattern_matches
+                    let is_focused = self
+                        .pattern_matches
                         .get(self.pattern_match_idx)
                         .map(|&hit| hit == (actual_row, actual_col))
                         .unwrap_or(false);
                     let outline_color = if is_focused {
-                        Color::from_rgb(1.0, 0.55, 0.0)  // orange = focused hit
+                        Color::from_rgb(1.0, 0.55, 0.0) // orange = focused hit
                     } else {
-                        Color::from_rgb(0.95, 0.85, 0.0)  // yellow = other hit
+                        Color::from_rgb(0.95, 0.85, 0.0) // yellow = other hit
                     };
                     frame.fill_rectangle(
                         Point::new(x, y),
                         Size::new(self.cell_w, self.cell_h),
-                        Color { a: 0.35, ..outline_color },
+                        Color {
+                            a: 0.35,
+                            ..outline_color
+                        },
                     );
                 }
             }
@@ -551,9 +590,14 @@ impl AlignmentGrid {
 
                 for f in &seq.features {
                     let fc = f.feature_type.default_color();
-                    if fc.a < 0.01 { continue; } // transparent → skip (Source)
-                    let Some(aln_start) = seq.alignment_col(f.start) else { continue };
-                    let aln_end = seq.alignment_col(f.end)
+                    if fc.a < 0.01 {
+                        continue;
+                    } // transparent → skip (Source)
+                    let Some(aln_start) = seq.alignment_col(f.start) else {
+                        continue;
+                    };
+                    let aln_end = seq
+                        .alignment_col(f.end)
                         .unwrap_or_else(|| seq.len().saturating_sub(1));
                     let tier = feature_tier(&f.feature_type);
                     tier_bands[tier].push((aln_start, aln_end, core_to_iced(fc)));
@@ -563,7 +607,9 @@ impl AlignmentGrid {
                 if any {
                     for ci in 0..vis_cols {
                         let actual_col = self.scroll_col + ci;
-                        if actual_col >= ncols { break; }
+                        if actual_col >= ncols {
+                            break;
+                        }
                         let x = TITLE_W + ci as f32 * self.cell_w;
 
                         for tier in 0..FEATURE_TIERS {
@@ -572,8 +618,8 @@ impl AlignmentGrid {
                                 .find(|&&(fs, fe, _)| actual_col >= fs && actual_col <= fe)
                             {
                                 // Tier 0 = bottom-most stripe; tier 2 = top stripe.
-                                let stripe_y = y + self.cell_h
-                                    - (tier as f32 + 1.0) * FEATURE_LAYER_H;
+                                let stripe_y =
+                                    y + self.cell_h - (tier as f32 + 1.0) * FEATURE_LAYER_H;
                                 frame.fill_rectangle(
                                     Point::new(x, stripe_y),
                                     Size::new(self.cell_w, FEATURE_LAYER_H),
@@ -596,10 +642,12 @@ impl AlignmentGrid {
         // ── Sequence names ───────────────────────────────────────────────
         for ri in 0..vis_rows {
             let actual_row = self.scroll_row + ri;
-            if actual_row >= nrows { break; }
+            if actual_row >= nrows {
+                break;
+            }
 
             let seq = &self.aln.sequences[actual_row];
-            let y   = RULER_H + ri as f32 * self.cell_h;
+            let y = RULER_H + ri as f32 * self.cell_h;
 
             if self.selected.contains(&actual_row) {
                 frame.fill_rectangle(
@@ -642,7 +690,12 @@ impl AlignmentGrid {
                 frame.fill_rectangle(
                     Point::new(x, 0.0),
                     Size::new(self.cell_w, RULER_H),
-                    Color { r: 0.05, g: 0.45, b: 0.85, a: 0.35 },
+                    Color {
+                        r: 0.05,
+                        g: 0.45,
+                        b: 0.85,
+                        a: 0.35,
+                    },
                 );
             }
         }
@@ -650,7 +703,9 @@ impl AlignmentGrid {
         // ── Ruler ticks every 10 columns ─────────────────────────────────
         for ci in 0..vis_cols {
             let actual_col = self.scroll_col + ci;
-            if actual_col >= ncols { break; }
+            if actual_col >= ncols {
+                break;
+            }
             if (actual_col + 1) % 10 == 0 || actual_col == 0 {
                 let x = TITLE_W + ci as f32 * self.cell_w;
                 frame.fill_text(Text {
@@ -675,9 +730,7 @@ impl AlignmentGrid {
 
         // ── Dividers ─────────────────────────────────────────────────────
         let border = Color::from_rgb(0.78, 0.78, 0.82);
-        let stroke  = canvas::Stroke::default()
-            .with_color(border)
-            .with_width(1.0);
+        let stroke = canvas::Stroke::default().with_color(border).with_width(1.0);
 
         frame.stroke(
             &Path::line(Point::new(TITLE_W, 0.0), Point::new(TITLE_W, size.height)),
@@ -687,18 +740,12 @@ impl AlignmentGrid {
             &Path::line(Point::new(0.0, RULER_H), Point::new(size.width, RULER_H)),
             stroke,
         );
-
     }
 
     /// Draws the drag-reorder indicator into a separate (non-cached) overlay frame.
     /// Called every render frame while a row drag is active, which is why it lives
     /// outside the main cache — it only draws 1–2 cheap rectangles.
-    fn draw_drag_overlay(
-        &self,
-        frame: &mut Frame<iced::Renderer>,
-        size:  Size,
-        state: &GridState,
-    ) {
+    fn draw_drag_overlay(&self, frame: &mut Frame<iced::Renderer>, size: Size, state: &GridState) {
         if let (Some(from), Some(to)) = (state.drag_from, state.drag_to) {
             let vis_rows = ((size.height - RULER_H) / self.cell_h).ceil() as usize + 1;
 
@@ -709,7 +756,12 @@ impl AlignmentGrid {
                 frame.fill_rectangle(
                     Point::new(0.0, y_src),
                     Size::new(TITLE_W - 1.0, self.cell_h),
-                    Color { r: 0.05, g: 0.45, b: 0.85, a: 0.25 },
+                    Color {
+                        r: 0.05,
+                        g: 0.45,
+                        b: 0.85,
+                        a: 0.25,
+                    },
                 );
             }
 
@@ -745,7 +797,9 @@ fn col_entropy_at(aln: &SeqAlignment, col: usize) -> f64 {
             }
         }
     }
-    if total == 0 { return 0.0; }
+    if total == 0 {
+        return 0.0;
+    }
     let mut h = 0.0f64;
     for &c in counts.iter() {
         if c > 0 {
@@ -772,17 +826,19 @@ fn truncate_name(name: &str, max_chars: usize) -> String {
 
 fn residue_bg(b: u8, seq_type: SequenceType, table: &ColorTable) -> Color {
     match seq_type {
-        SequenceType::Dna | SequenceType::Rna | SequenceType::NucleicAcid =>
-            table.nuc_color(b),
-        SequenceType::Protein =>
-            table.aa_color(b),
+        SequenceType::Dna | SequenceType::Rna | SequenceType::NucleicAcid => table.nuc_color(b),
+        SequenceType::Protein => table.aa_color(b),
         // Unknown: try nucleotide table first; if grey (default), try AA table.
         _ => {
             let c = table.nuc_color(b);
             if c.r > 0.89 && c.g > 0.89 && c.b > 0.89 {
                 // Likely a default grey — try amino acid table instead
                 let ca = table.aa_color(b);
-                if ca.r < 0.89 || ca.g < 0.89 || ca.b < 0.89 { ca } else { c }
+                if ca.r < 0.89 || ca.g < 0.89 || ca.b < 0.89 {
+                    ca
+                } else {
+                    c
+                }
             } else {
                 c
             }
@@ -793,7 +849,12 @@ fn residue_bg(b: u8, seq_type: SequenceType, table: &ColorTable) -> Color {
 /// Convert a helixview-core Color (f32 RGBA) to an iced Color.
 #[inline]
 fn core_to_iced(c: CoreColor) -> Color {
-    Color { r: c.r, g: c.g, b: c.b, a: c.a }
+    Color {
+        r: c.r,
+        g: c.g,
+        b: c.b,
+        a: c.a,
+    }
 }
 
 /// Map a feature type to its display tier (0 = bottom/specific, 2 = top/broad).
@@ -816,4 +877,3 @@ fn feature_tier(ft: &FeatureType) -> usize {
         _ => 0, // Exon, Intron, SigPeptide, MiscFeature, RepeatRegion, etc.
     }
 }
-

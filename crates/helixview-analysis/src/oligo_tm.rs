@@ -6,32 +6,32 @@
 /// SantaLucia 1998 nearest-neighbor parameters: (ΔH kcal/mol, ΔS cal/mol·K).
 /// Keys are two-letter DNA dinucleotides in 5'→3' direction (uppercase).
 const NN_PARAMS: &[(&[u8; 2], f64, f64)] = &[
-    (b"AA", -7.9,  -22.2),
-    (b"AT", -7.2,  -20.4),
-    (b"TA", -7.2,  -21.3),
-    (b"CA", -8.5,  -22.7),
-    (b"GT", -8.4,  -22.4),
-    (b"CT", -7.8,  -21.0),
-    (b"GA", -8.2,  -22.2),
+    (b"AA", -7.9, -22.2),
+    (b"AT", -7.2, -20.4),
+    (b"TA", -7.2, -21.3),
+    (b"CA", -8.5, -22.7),
+    (b"GT", -8.4, -22.4),
+    (b"CT", -7.8, -21.0),
+    (b"GA", -8.2, -22.2),
     (b"CG", -10.6, -27.2),
-    (b"GC", -9.8,  -24.4),
-    (b"GG", -8.0,  -19.9),
+    (b"GC", -9.8, -24.4),
+    (b"GG", -8.0, -19.9),
     // Complements (reverse strand reads 5'→3' so GG complement = CC)
-    (b"TT", -7.9,  -22.2), // complement of AA
-    (b"AC", -7.8,  -21.0), // complement of GT
-    (b"TC", -8.2,  -22.2), // complement of GA
-    (b"CC", -8.0,  -19.9), // complement of GG
-    (b"AG", -7.8,  -21.0), // complement of CT
-    (b"TG", -8.5,  -22.7), // complement of CA
-    (b"GT", -8.4,  -22.4),
-    (b"TT", -7.9,  -22.2),
+    (b"TT", -7.9, -22.2), // complement of AA
+    (b"AC", -7.8, -21.0), // complement of GT
+    (b"TC", -8.2, -22.2), // complement of GA
+    (b"CC", -8.0, -19.9), // complement of GG
+    (b"AG", -7.8, -21.0), // complement of CT
+    (b"TG", -8.5, -22.7), // complement of CA
+    (b"GT", -8.4, -22.4),
+    (b"TT", -7.9, -22.2),
 ];
 
 /// Initiation parameters (SantaLucia 1998, Table 2).
 /// Terminal GC: ΔH = 0.1 kcal/mol, ΔS = −2.8 cal/mol·K
 /// Terminal AT: ΔH = 2.3 kcal/mol, ΔS = 4.1 cal/mol·K
-const INIT_GC: (f64, f64) = (0.1,  -2.8);
-const INIT_AT: (f64, f64) = (2.3,   4.1);
+const INIT_GC: (f64, f64) = (0.1, -2.8);
+const INIT_AT: (f64, f64) = (2.3, 4.1);
 
 /// R in cal/(mol·K)
 const R: f64 = 1.987;
@@ -59,12 +59,15 @@ pub struct TmResult {
 /// where CT = 250 × 10⁻⁹ mol/L (250 nM total strand concentration).
 pub fn calculate_tm(seq: &[u8]) -> Option<TmResult> {
     // Strip gaps, uppercase.
-    let raw: Vec<u8> = seq.iter()
+    let raw: Vec<u8> = seq
+        .iter()
         .filter(|&&b| !matches!(b, b'-' | b'~' | b'.'))
         .map(|&b| b.to_ascii_uppercase())
         .collect();
 
-    if raw.len() < 2 { return None; }
+    if raw.len() < 2 {
+        return None;
+    }
 
     let mut dh: f64 = 0.0;
     let mut ds: f64 = 0.0;
@@ -72,7 +75,10 @@ pub fn calculate_tm(seq: &[u8]) -> Option<TmResult> {
     // Sum nearest-neighbor parameters
     for i in 0..raw.len() - 1 {
         let pair = [raw[i], raw[i + 1]];
-        if let Some(&(_, h, s)) = NN_PARAMS.iter().find(|(k, _, _)| k[0] == pair[0] && k[1] == pair[1]) {
+        if let Some(&(_, h, s)) = NN_PARAMS
+            .iter()
+            .find(|(k, _, _)| k[0] == pair[0] && k[1] == pair[1])
+        {
             dh += h;
             ds += s;
         }
@@ -85,11 +91,16 @@ pub fn calculate_tm(seq: &[u8]) -> Option<TmResult> {
 
     // Initiation correction
     let add_init = |b: u8, dh: &mut f64, ds: &mut f64| {
-        let (h, s) = if matches!(b, b'G' | b'C') { INIT_GC } else { INIT_AT };
-        *dh += h; *ds += s;
+        let (h, s) = if matches!(b, b'G' | b'C') {
+            INIT_GC
+        } else {
+            INIT_AT
+        };
+        *dh += h;
+        *ds += s;
     };
     add_init(*raw.first().unwrap(), &mut dh, &mut ds);
-    add_init(*raw.last().unwrap(),  &mut dh, &mut ds);
+    add_init(*raw.last().unwrap(), &mut dh, &mut ds);
 
     // Convert units: ΔH kcal/mol → cal/mol
     let dh_cal = dh * 1000.0;
@@ -106,21 +117,25 @@ pub fn calculate_tm(seq: &[u8]) -> Option<TmResult> {
 
     Some(TmResult {
         tm_celsius: tm_c,
-        delta_h:    dh,
-        delta_s:    ds,
+        delta_h: dh,
+        delta_s: ds,
         gc_fraction,
-        length:     raw.len(),
+        length: raw.len(),
     })
 }
 
 /// Quick rule-of-thumb Tm for short oligos (< 14 nt): Wallace rule.
 /// Tm = 2(A+T) + 4(G+C)
 pub fn wallace_tm(seq: &[u8]) -> f64 {
-    let raw: Vec<u8> = seq.iter()
+    let raw: Vec<u8> = seq
+        .iter()
         .filter(|&&b| !matches!(b, b'-' | b'~' | b'.'))
         .map(|&b| b.to_ascii_uppercase())
         .collect();
-    let at = raw.iter().filter(|&&b| matches!(b, b'A' | b'T' | b'U')).count() as f64;
+    let at = raw
+        .iter()
+        .filter(|&&b| matches!(b, b'A' | b'T' | b'U'))
+        .count() as f64;
     let gc = raw.iter().filter(|&&b| matches!(b, b'G' | b'C')).count() as f64;
     2.0 * at + 4.0 * gc
 }
@@ -158,29 +173,44 @@ mod tests {
         let r = calculate_tm(b"ATCGATCG").unwrap();
         // Tm should be a plausible real number (not NaN/inf), somewhere in 10–80 °C range.
         assert!(r.tm_celsius.is_finite());
-        assert!(r.tm_celsius > 5.0 && r.tm_celsius < 90.0,
-            "Tm out of expected range: {}", r.tm_celsius);
+        assert!(
+            r.tm_celsius > 5.0 && r.tm_celsius < 90.0,
+            "Tm out of expected range: {}",
+            r.tm_celsius
+        );
     }
 
     #[test]
     fn calculate_tm_gc_rich_higher_than_at_rich() {
         let gc = calculate_tm(b"GCGCGCGCGCGCGCGCGCGC").unwrap();
         let at = calculate_tm(b"ATATATATATATATATATATAT").unwrap();
-        assert!(gc.tm_celsius > at.tm_celsius,
-            "expected GC Tm ({:.1}) > AT Tm ({:.1})", gc.tm_celsius, at.tm_celsius);
+        assert!(
+            gc.tm_celsius > at.tm_celsius,
+            "expected GC Tm ({:.1}) > AT Tm ({:.1})",
+            gc.tm_celsius,
+            at.tm_celsius
+        );
     }
 
     #[test]
     fn calculate_tm_gc_fraction_correct() {
         let r = calculate_tm(b"GCGCGCGC").unwrap();
-        assert!((r.gc_fraction - 1.0).abs() < 1e-6, "expected 1.0, got {}", r.gc_fraction);
+        assert!(
+            (r.gc_fraction - 1.0).abs() < 1e-6,
+            "expected 1.0, got {}",
+            r.gc_fraction
+        );
         let r2 = calculate_tm(b"ATATATATAT").unwrap();
-        assert!(r2.gc_fraction.abs() < 1e-6, "expected 0.0, got {}", r2.gc_fraction);
+        assert!(
+            r2.gc_fraction.abs() < 1e-6,
+            "expected 0.0, got {}",
+            r2.gc_fraction
+        );
     }
 
     #[test]
     fn calculate_tm_strips_gaps() {
-        let with_gaps    = calculate_tm(b"AT-CG-AT").unwrap();
+        let with_gaps = calculate_tm(b"AT-CG-AT").unwrap();
         let without_gaps = calculate_tm(b"ATCGAT").unwrap();
         assert!((with_gaps.tm_celsius - without_gaps.tm_celsius).abs() < 1e-6);
     }

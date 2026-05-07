@@ -1,15 +1,13 @@
+use crate::app::Message;
+use crate::theme::{buttons as btn_style, palette};
 use iced::{
-    widget::{button, column, container, row, text, vertical_space, horizontal_space},
+    widget::{button, column, container, horizontal_space, row, text, vertical_space},
     Alignment, Background, Border, Color, Element, Length,
 };
-use crate::app::Message;
-use crate::theme::{palette, buttons as btn_style};
 
 pub fn welcome_view() -> Element<'static, Message> {
     // ── Hero ─────────────────────────────────────────────────────────────────
-    let title = text("HelixView")
-        .size(54)
-        .color(palette::ACCENT);
+    let title = text("HelixView").size(54).color(palette::ACCENT);
 
     let subtitle = text("Biological Sequence Analysis")
         .size(18)
@@ -62,10 +60,22 @@ pub fn welcome_view() -> Element<'static, Message> {
     };
 
     let cards = row![
-        card("Alignment Editor",   "FASTA · GenBank · ClustalW\nPhylip · NEXUS · EMBL · PIR"),
-        card("Sequence Analysis",  "Mutual info · Entropy\nORFs · 6-Frame · Identity"),
-        card("Visualization",      "Plasmid map · Phylo tree\nABI trace · Dot plot"),
-        card("External Tools",     "BLAST · ClustalW · MUSCLE\nMAFFT · ClustalΩ"),
+        card(
+            "Alignment Editor",
+            "FASTA · GenBank · ClustalW\nPhylip · NEXUS · EMBL · PIR"
+        ),
+        card(
+            "Sequence Analysis",
+            "Mutual info · Entropy\nORFs · 6-Frame · Identity"
+        ),
+        card(
+            "Visualization",
+            "Plasmid map · Phylo tree\nABI trace · Dot plot"
+        ),
+        card(
+            "External Tools",
+            "BLAST · ClustalW · MUSCLE\nMAFFT · ClustalΩ"
+        ),
     ]
     .spacing(12)
     .align_y(Alignment::Start);
@@ -73,8 +83,7 @@ pub fn welcome_view() -> Element<'static, Message> {
     // ── Shortcuts reference ──────────────────────────────────────────────────
     let shortcut_row = |keys: &'static str, desc: &'static str| -> Element<'static, Message> {
         row![
-            container(text(keys).size(11).color(palette::ACCENT))
-                .width(Length::Fixed(130.0)),
+            container(text(keys).size(11).color(palette::ACCENT)).width(Length::Fixed(130.0)),
             text(desc).size(11).color(palette::TEXT_DIM),
         ]
         .spacing(8)
@@ -86,19 +95,23 @@ pub fn welcome_view() -> Element<'static, Message> {
         column![
             text("Keyboard shortcuts").size(13).color(palette::TEXT),
             vertical_space().height(6),
-            shortcut_row("Ctrl+O / Ctrl+S",  "Open / Save"),
-            shortcut_row("Ctrl+Z / Ctrl+Y",  "Undo / Redo"),
-            shortcut_row("Ctrl+F",            "Find sequence pattern"),
-            shortcut_row("Ctrl+P",            "Command palette"),
-            shortcut_row("Click + type",      "Edit residue in cell"),
-            shortcut_row("Right-click column","Insert / delete gap column"),
+            shortcut_row("Ctrl+O / Ctrl+S", "Open / Save"),
+            shortcut_row("Ctrl+Z / Ctrl+Y", "Undo / Redo"),
+            shortcut_row("Ctrl+F", "Find sequence pattern"),
+            shortcut_row("Ctrl+P", "Command palette"),
+            shortcut_row("Click + type", "Edit residue in cell"),
+            shortcut_row("Right-click column", "Insert / delete gap column"),
         ]
         .spacing(4)
         .padding([12, 14]),
     )
     .style(|_| container::Style {
         background: Some(Background::Color(Color::WHITE)),
-        border: Border { color: palette::BORDER, width: 1.0, radius: 6.0.into() },
+        border: Border {
+            color: palette::BORDER,
+            width: 1.0,
+            radius: 6.0.into(),
+        },
         ..Default::default()
     })
     .width(Length::Fixed(320.0));
@@ -116,8 +129,7 @@ pub fn welcome_view() -> Element<'static, Message> {
             vertical_space().height(32),
             cards,
             vertical_space().height(24),
-            row![horizontal_space(), shortcuts, horizontal_space()]
-                .width(Length::Fill),
+            row![horizontal_space(), shortcuts, horizontal_space()].width(Length::Fill),
             vertical_space(),
         ]
         .spacing(6)

@@ -1,15 +1,15 @@
+pub mod accessories;
 mod app;
 mod blast;
-mod entrez;
-mod theme;
-mod views;
-mod widgets;
 mod color_table;
-mod export_svg;
+mod entrez;
 mod export_shaded;
+mod export_svg;
 pub mod prefs;
 mod project;
 pub mod text_export;
-pub mod accessories;
+mod theme;
+mod views;
+mod widgets;
 
 pub use app::run;

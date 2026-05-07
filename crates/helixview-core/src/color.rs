@@ -9,16 +9,31 @@ pub struct Color {
 }
 
 impl Color {
-    pub const BLACK:       Self = Self { r: 0.0, g: 0.0, b: 0.0, a: 1.0 };
-    pub const WHITE:       Self = Self { r: 1.0, g: 1.0, b: 1.0, a: 1.0 };
-    pub const TRANSPARENT: Self = Self { r: 0.0, g: 0.0, b: 0.0, a: 0.0 };
+    pub const BLACK: Self = Self {
+        r: 0.0,
+        g: 0.0,
+        b: 0.0,
+        a: 1.0,
+    };
+    pub const WHITE: Self = Self {
+        r: 1.0,
+        g: 1.0,
+        b: 1.0,
+        a: 1.0,
+    };
+    pub const TRANSPARENT: Self = Self {
+        r: 0.0,
+        g: 0.0,
+        b: 0.0,
+        a: 0.0,
+    };
 
     // Standard nucleotide colors (Megan convention)
-    pub const DNA_A: Self = Self::from_u8(0,   200,  0  );
-    pub const DNA_C: Self = Self::from_u8(0,   0,    200);
-    pub const DNA_G: Self = Self::from_u8(220, 180,  0  );
-    pub const DNA_T: Self = Self::from_u8(200, 0,    0  );
-    pub const DNA_U: Self = Self::from_u8(200, 0,    0  );
+    pub const DNA_A: Self = Self::from_u8(0, 200, 0);
+    pub const DNA_C: Self = Self::from_u8(0, 0, 200);
+    pub const DNA_G: Self = Self::from_u8(220, 180, 0);
+    pub const DNA_T: Self = Self::from_u8(200, 0, 0);
+    pub const DNA_U: Self = Self::from_u8(200, 0, 0);
     pub const DNA_GAP: Self = Self::WHITE;
 
     pub const fn rgb(r: f32, g: f32, b: f32) -> Self {
@@ -92,6 +107,9 @@ impl Default for ColorTable {
         aa[b'Y' as usize] = Color::from_u8(0, 180, 180);
         aa[b'y' as usize] = Color::from_u8(0, 180, 180);
 
-        Self { nucleotide: nt, amino_acid: aa }
+        Self {
+            nucleotide: nt,
+            amino_acid: aa,
+        }
     }
 }

@@ -1,7 +1,10 @@
 //! Consensus sequence generation from a multiple sequence alignment.
 
+use helixview_core::{
+    sequence::{is_gap, SequenceType},
+    Alignment,
+};
 use std::collections::BTreeSet;
-use helixview_core::{Alignment, sequence::{is_gap, SequenceType}};
 
 /// Strategy for choosing the consensus residue at each alignment column.
 #[derive(Debug, Clone)]
@@ -23,7 +26,10 @@ pub fn consensus(aln: &Alignment, method: ConsensusMethod) -> Vec<u8> {
     }
 
     // Decide whether this is a DNA or protein alignment.
-    let is_dna = !aln.sequences.iter().any(|s| s.seq_type == SequenceType::Protein);
+    let is_dna = !aln
+        .sequences
+        .iter()
+        .any(|s| s.seq_type == SequenceType::Protein);
 
     (0..cols)
         .map(|col| {
@@ -48,14 +54,12 @@ pub fn consensus(aln: &Alignment, method: ConsensusMethod) -> Vec<u8> {
             }
 
             match &method {
-                ConsensusMethod::Plurality => {
-                    counts
-                        .iter()
-                        .enumerate()
-                        .max_by_key(|(_, &v)| v)
-                        .map(|(i, _)| i as u8)
-                        .unwrap_or(b'-')
-                }
+                ConsensusMethod::Plurality => counts
+                    .iter()
+                    .enumerate()
+                    .max_by_key(|(_, &v)| v)
+                    .map(|(i, _)| i as u8)
+                    .unwrap_or(b'-'),
                 ConsensusMethod::Iupac { threshold } => {
                     let mut present: BTreeSet<u8> = BTreeSet::new();
                     for (byte, &cnt) in counts.iter().enumerate() {
@@ -94,25 +98,25 @@ pub fn to_iupac(residues: &BTreeSet<u8>, is_dna: bool) -> u8 {
     // Convert set to a sorted Vec for matching.
     let v: Vec<u8> = residues.iter().copied().collect();
     match v.as_slice() {
-        [b'A', b'G']             => b'R',
-        [b'C', b'T']             => b'Y',
-        [b'C', b'G']             => b'S',
-        [b'A', b'T']             => b'W',
-        [b'G', b'T']             => b'K',
-        [b'A', b'C']             => b'M',
-        [b'C', b'G', b'T']       => b'B',
-        [b'A', b'G', b'T']       => b'D',
-        [b'A', b'C', b'T']       => b'H',
-        [b'A', b'C', b'G']       => b'V',
+        [b'A', b'G'] => b'R',
+        [b'C', b'T'] => b'Y',
+        [b'C', b'G'] => b'S',
+        [b'A', b'T'] => b'W',
+        [b'G', b'T'] => b'K',
+        [b'A', b'C'] => b'M',
+        [b'C', b'G', b'T'] => b'B',
+        [b'A', b'G', b'T'] => b'D',
+        [b'A', b'C', b'T'] => b'H',
+        [b'A', b'C', b'G'] => b'V',
         [b'A', b'C', b'G', b'T'] => b'N',
-        _                        => b'N',
+        _ => b'N',
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use helixview_core::{Alignment, sequence::Sequence};
+    use helixview_core::{sequence::Sequence, Alignment};
 
     fn make_seq(name: &str, res: &[u8]) -> Sequence {
         Sequence::new(name, res.to_vec())

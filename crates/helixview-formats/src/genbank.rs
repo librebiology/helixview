@@ -1,13 +1,13 @@
+use crate::{FormatError, Result};
 use helixview_core::{
     alignment::Alignment,
-    sequence::{Sequence, SequenceType, GenBankMeta},
+    sequence::{GenBankMeta, Sequence, SequenceType},
 };
-use crate::{FormatError, Result};
 use std::path::Path;
 
 pub fn parse_bytes(data: &[u8], name: &str) -> Result<Alignment> {
-    let text = std::str::from_utf8(data)
-        .map_err(|e| FormatError::Parse(format!("Invalid UTF-8: {e}")))?;
+    let text =
+        std::str::from_utf8(data).map_err(|e| FormatError::Parse(format!("Invalid UTF-8: {e}")))?;
     parse_str(text, name)
 }
 
@@ -15,13 +15,17 @@ pub fn parse_str(text: &str, name: &str) -> Result<Alignment> {
     let mut aln = Alignment::new(name);
     for record in text.split("\n//") {
         let record = record.trim();
-        if record.is_empty() { continue; }
+        if record.is_empty() {
+            continue;
+        }
         if let Some(seq) = parse_record(record) {
             aln.push(seq);
         }
     }
     if aln.is_empty() {
-        return Err(FormatError::Parse("No sequences found in GenBank data".into()));
+        return Err(FormatError::Parse(
+            "No sequences found in GenBank data".into(),
+        ));
     }
     Ok(aln)
 }
@@ -46,7 +50,9 @@ fn parse_record(record: &str) -> Option<Sequence> {
 
         if in_origin {
             for b in line.bytes() {
-                if b.is_ascii_alphabetic() { residues.push(b); }
+                if b.is_ascii_alphabetic() {
+                    residues.push(b);
+                }
             }
             continue;
         }
@@ -72,8 +78,12 @@ fn parse_record(record: &str) -> Option<Sequence> {
     }
     flush_field(&mut current_field, &mut current_value, &mut meta);
 
-    if residues.is_empty() { return None; }
-    if seq_name.is_empty() { seq_name = "unnamed".to_string(); }
+    if residues.is_empty() {
+        return None;
+    }
+    if seq_name.is_empty() {
+        seq_name = "unnamed".to_string();
+    }
 
     let mut seq = Sequence::new(seq_name, residues);
     seq.seq_type = SequenceType::Dna;
@@ -88,16 +98,16 @@ fn flush_field(field: &mut Option<String>, value: &mut String, meta: &mut GenBan
     if let Some(f) = field.take() {
         let v = std::mem::take(value).trim().to_string();
         match f.as_str() {
-            "LOCUS"      => meta.locus      = Some(v),
+            "LOCUS" => meta.locus = Some(v),
             "DEFINITION" => meta.definition = Some(v),
-            "ACCESSION"  => meta.accession  = Some(v),
-            "VERSION"    => meta.version    = Some(v),
-            "DBSOURCE"   => meta.dbsource   = Some(v),
-            "KEYWORDS"   => meta.keywords   = Some(v),
-            "SOURCE"     => meta.source     = Some(v),
-            "COMMENT"    => meta.comment    = Some(v),
-            "FEATURES"   => meta.features_raw = Some(v),
-            "REFERENCE"  => meta.references.push(v),
+            "ACCESSION" => meta.accession = Some(v),
+            "VERSION" => meta.version = Some(v),
+            "DBSOURCE" => meta.dbsource = Some(v),
+            "KEYWORDS" => meta.keywords = Some(v),
+            "SOURCE" => meta.source = Some(v),
+            "COMMENT" => meta.comment = Some(v),
+            "FEATURES" => meta.features_raw = Some(v),
+            "REFERENCE" => meta.references.push(v),
             _ => {}
         }
     }
@@ -119,10 +129,10 @@ pub fn to_string(aln: &Alignment) -> Result<String> {
 fn write_record(out: &mut String, seq: &Sequence) {
     let len = seq.true_len();
     let mol = match seq.seq_type {
-        SequenceType::Dna     => "DNA",
-        SequenceType::Rna     => "RNA",
+        SequenceType::Dna => "DNA",
+        SequenceType::Rna => "RNA",
         SequenceType::Protein => "AA ",
-        _                     => "   ",
+        _ => "   ",
     };
     out.push_str(&format!(
         "LOCUS       {:<16} {:>10} bp    {}    linear\n",
@@ -138,14 +148,18 @@ fn write_record(out: &mut String, seq: &Sequence) {
         out.push_str(&format!("VERSION     {}\n", ver));
     }
     out.push_str("ORIGIN\n");
-    let raw: Vec<u8> = seq.residues.iter()
+    let raw: Vec<u8> = seq
+        .residues
+        .iter()
         .copied()
         .filter(|&b| !matches!(b, b'-' | b'~' | b'.'))
         .collect();
     for (i, chunk) in raw.chunks(60).enumerate() {
         out.push_str(&format!("{:>9} ", (i * 60) + 1));
         for (j, sub) in chunk.chunks(10).enumerate() {
-            if j > 0 { out.push(' '); }
+            if j > 0 {
+                out.push(' ');
+            }
             out.push_str(std::str::from_utf8(sub).unwrap_or("?"));
         }
         out.push('\n');
@@ -182,8 +196,8 @@ ORIGIN
 
     #[test]
     fn roundtrip_preserves_names_and_residues() {
-        let aln  = super::parse_str(SAMPLE, "test").unwrap();
-        let out  = super::to_string(&aln).unwrap();
+        let aln = super::parse_str(SAMPLE, "test").unwrap();
+        let out = super::to_string(&aln).unwrap();
         let aln2 = super::parse_str(&out, "test2").unwrap();
         assert_eq!(aln.seq_count(), aln2.seq_count());
         for (a, b) in aln.sequences.iter().zip(aln2.sequences.iter()) {
